@@ -48,6 +48,7 @@ CheckType = Literal[
     "vat_validation",
     "lei_validation",
     "sanctions_screening",
+    "usps_address",
 ]
 
 # ISO 3166-1 alpha-2 country codes the API currently supports. Mirrors
