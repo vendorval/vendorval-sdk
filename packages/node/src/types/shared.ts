@@ -112,6 +112,84 @@ export interface IdentifierRecord {
   last_seen_at: string;
 }
 
+/**
+ * Phase S3 / S4 — standalone address endpoints (free, rate-limited per
+ * tenant). Distinct from `AddressRecord` (which is the per-entity address
+ * row returned on entity reads).
+ */
+export interface AddressLookupRequest {
+  street_address: string;
+  state: string;
+  city?: string;
+  zip_code?: string;
+  secondary_address?: string;
+  firm?: string;
+}
+
+export type Deliverability =
+  | "deliverable"
+  | "undeliverable"
+  | "vacant"
+  | "unknown";
+
+export type DpvCode = "Y" | "D" | "S" | "N";
+
+export interface AddressLookupResponse {
+  input: {
+    street_address: string;
+    state: string;
+    city: string | null;
+    zip_code: string | null;
+    secondary_address: string | null;
+    firm: string | null;
+  };
+  standardized: {
+    firm: string | null;
+    line_1: string | null;
+    line_2: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    postal_code_plus_4: string | null;
+  } | null;
+  deliverability: Deliverability;
+  dpv_code: DpvCode | null;
+  flags: {
+    business: boolean | null;
+    vacant: boolean | null;
+    central_delivery_point: boolean | null;
+    dpv_cmra: boolean | null;
+  };
+  verified_at: string;
+  verified_by_source: "usps";
+  warnings: string[];
+}
+
+export interface AddressSuggestParams {
+  q: string;
+  state?: string;
+  limit?: number;
+}
+
+export interface AddressSuggestion {
+  id: string;
+  line_1: string;
+  line_2: string | null;
+  city: string;
+  state: string;
+  postal_code: string;
+  postal_code_plus_4: string | null;
+  country: string;
+  usps_verified: boolean;
+  score: number;
+}
+
+export interface AddressSuggestResponse {
+  object: "list";
+  data: AddressSuggestion[];
+  query: { q: string; state: string | null; limit: number };
+}
+
 export interface AddressRecord {
   id: string;
   entity_id: string;

@@ -1,3 +1,4 @@
+import { AddressesResource } from "./resources/addresses.js";
 import { CertificationsResource } from "./resources/certifications.js";
 import { EntitiesResource } from "./resources/entities.js";
 import { JobsResource } from "./resources/jobs.js";
@@ -22,6 +23,7 @@ export class Vendorval {
   readonly meta: MetaResource;
   readonly usage: UsageResource;
   readonly jobs: JobsResource;
+  readonly addresses: AddressesResource;
   readonly webhooks = webhooksModule;
 
   /** Resolved options. Useful for advanced consumers. */
@@ -37,5 +39,6 @@ export class Vendorval {
     this.meta = new MetaResource(this.options);
     this.usage = new UsageResource(this.options);
     this.jobs = new JobsResource(this.options);
+    this.addresses = new AddressesResource(this.options);
   }
 }

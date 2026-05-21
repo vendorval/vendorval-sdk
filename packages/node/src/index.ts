@@ -42,7 +42,12 @@ export type {
 } from "./types/api.js";
 export type {
   AddressInput,
+  AddressLookupRequest,
+  AddressLookupResponse,
   AddressRecord,
+  AddressSuggestParams,
+  AddressSuggestResponse,
+  AddressSuggestion,
   BulkJob,
   Certification,
   CertificationsListParams,
@@ -55,6 +60,8 @@ export type {
   ClassificationEthnicSubcategory,
   CountryCode,
   CountryTier,
+  Deliverability,
+  DpvCode,
   Entity,
   EntityRegion,
   EntityType,
