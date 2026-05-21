@@ -35,7 +35,8 @@ export type CheckType =
   | "tin_match"
   | "vat_validation"
   | "lei_validation"
-  | "sanctions_screening";
+  | "sanctions_screening"
+  | "usps_address";
 
 /**
  * ISO 3166-1 alpha-2 country codes the API currently supports.
@@ -121,6 +122,23 @@ export interface AddressRecord {
   state?: string | null;
   postal_code?: string | null;
   country?: string | null;
+  /**
+   * Phase S3.1 — USPS-standardized sibling fields, populated when the
+   * address has been verified via `/v1/verify usps_address` or the
+   * background sweep. NULL until then.
+   */
+  standardized?: {
+    line_1?: string | null;
+    line_2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    postal_code_plus_4?: string | null;
+  } | null;
+  deliverability?: "deliverable" | "undeliverable" | "vacant" | "unknown" | null;
+  dpv_code?: "Y" | "D" | "S" | "N" | null;
+  verified_at?: string | null;
+  verified_by_source?: string | null;
   created_at: string;
 }
 
