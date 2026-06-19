@@ -1,6 +1,6 @@
 {
   "name": "vendorval-sdk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Official Node.js / TypeScript SDK for the VendorVal API",
   "license": "MIT",
   "homepage": "https://docs.vendorval.com",

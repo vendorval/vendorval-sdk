@@ -1,5 +1,26 @@
 # vendorval-sdk (Python)
 
+## 0.8.0 — 2026-06-19
+
+**Type-only release** — adds Phase 5 of data #155 fan-out on `client.certifications`.
+
+- New `CertificationIssuerScope` Literal (`"state" | "federal" | "international" | "tribal" | "private"`).
+- `Certification.issuer_scope: CertificationIssuerScope | None` — populated from the api's first-class `gold.certifications.issuer_scope` column shipped in api migration 0064. 100% non-null in prod 2026-06-16 (federal=21, state=22398); any null is a reconciler regression.
+- `CertificationsResource.list(scope=...)` + `AsyncCertificationsResource.list(scope=...)` — comma-separated multi-select. Pass a single value (`'federal'`) or a list; the SDK joins lists with `,` for the api's wire format.
+
+```python
+# Every federal cert across all your entities — the canonical
+# "show me my SBA certs" filter. Preferred over the older
+# certifying_state="FEDERAL", which under-counted federal rows
+# split between NULL and 'FEDERAL'.
+federal = client.certifications.list(scope="federal")
+
+# Multi-select (OR within the filter).
+both = client.certifications.list(scope=["federal", "state"])
+```
+
+Pairs with vendorval-api PR #441 (Phase 4 of data #155) and vendorval-app PR #107.
+
 ## 0.5.0 — 2026-05-12
 
 **Additive release** — adds identifier-resolved scoping params on `client.certifications.list`.
