@@ -342,6 +342,24 @@ CertificationStatus = Literal[
     "not_certified",
 ]
 
+# Phase 5 of data #155 — closed enum on the awarding authority's coarse
+# geographic + sector scope. Mirrors the api's `?scope=` filter on
+# GET /v1/certifications (pinned by the certifications_issuer_scope_chk
+# CHECK constraint in api migration 0064). 100% backfilled in prod
+# 2026-06-16; a null on the wire indicates a reconciler regression
+# rather than a missing value.
+#
+# Today only `state` (~22,398 prod rows) and `federal` (~21 prod rows:
+# SBA 8(a) / HUBZone / SDB / AbilityOne / 8(a) JV) carry data; the
+# other three are reserved for future sources.
+CertificationIssuerScope = Literal[
+    "state",
+    "federal",
+    "international",
+    "tribal",
+    "private",
+]
+
 ClassificationCategory = Literal[
     "small_business",
     "minority_owned",
@@ -396,6 +414,12 @@ class Certification(TypedDict, total=False):
     expiring_soon: bool
     retrieved_at: str
     classifications: list[Classification]
+    # Phase 5 of data #155 — coarse awarding-authority scope. Reads
+    # the first-class `issuer_scope` column (api migration 0064).
+    # 100% non-null in prod today; any null indicates a reconciler
+    # regression. Filter the list via `scope=` on
+    # CertificationsResource.list().
+    issuer_scope: CertificationIssuerScope | None
     source: CertificationSource
     created_at: str
     updated_at: str

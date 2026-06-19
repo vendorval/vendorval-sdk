@@ -29,6 +29,7 @@ def _build_query(
     npi: str | None,
     issuer: str | None,
     status: str | None,
+    scope: str | list[str] | None,
     expiring_within_days: int | None,
     limit: int | None,
     offset: int | None,
@@ -40,6 +41,11 @@ def _build_query(
     `/v1/entities/lookup` uses. Saves callers a 2-step lookup-then-query
     flow. Tenant-scoped at the API; passing multiple identifiers that
     resolve to different entities → 400.
+
+    `scope` is Phase 5 of data #155 — comma-separated multi-select on
+    the awarding authority's coarse scope. Pass a single value
+    (e.g. `'federal'`) or a list — the SDK joins lists with `,` for
+    the api's wire format.
     """
     return {
         "entity_id": entity_id,
@@ -52,6 +58,7 @@ def _build_query(
         "npi": npi,
         "issuer": issuer,
         "status": status,
+        "scope": ",".join(scope) if isinstance(scope, list) else scope,
         "expiring_within_days": expiring_within_days,
         "limit": limit,
         "offset": offset,
@@ -76,6 +83,7 @@ class CertificationsResource:
         npi: str | None = None,
         issuer: str | None = None,
         status: str | None = None,
+        scope: str | list[str] | None = None,
         expiring_within_days: int | None = None,
         limit: int | None = None,
         offset: int | None = None,
@@ -108,6 +116,7 @@ class CertificationsResource:
                 npi=npi,
                 issuer=issuer,
                 status=status,
+                scope=scope,
                 expiring_within_days=expiring_within_days,
                 limit=limit,
                 offset=offset,
@@ -145,6 +154,7 @@ class AsyncCertificationsResource:
         npi: str | None = None,
         issuer: str | None = None,
         status: str | None = None,
+        scope: str | list[str] | None = None,
         expiring_within_days: int | None = None,
         limit: int | None = None,
         offset: int | None = None,
@@ -164,6 +174,7 @@ class AsyncCertificationsResource:
                 npi=npi,
                 issuer=issuer,
                 status=status,
+                scope=scope,
                 expiring_within_days=expiring_within_days,
                 limit=limit,
                 offset=offset,

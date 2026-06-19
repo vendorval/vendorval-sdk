@@ -45,6 +45,12 @@ export class CertificationsResource {
     if (params.npi !== undefined) query.npi = params.npi;
     if (params.issuer !== undefined) query.issuer = params.issuer;
     if (params.status !== undefined) query.status = params.status;
+    // Phase 5 of data #155 — `?scope=` is comma-separated multi-select
+    // at the wire level. SDK consumers can pass a single value or an
+    // array; we join the array here so the typing stays ergonomic.
+    if (params.scope !== undefined) {
+      query.scope = Array.isArray(params.scope) ? params.scope.join(",") : params.scope;
+    }
     if (params.expiring_within_days !== undefined) {
       query.expiring_within_days = params.expiring_within_days;
     }

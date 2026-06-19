@@ -59,6 +59,7 @@ const ALLOWED_TS_ONLY = new Set([
   // it from this set.
   'AddressRecord',
   'BulkJob',
+  'CertificationIssuerScope',
   'CertificationStatus',
   'CertificationsListParams',
   'ClassificationCategory',

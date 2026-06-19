@@ -464,6 +464,28 @@ export interface Classification {
   raw_label: string;
 }
 
+/**
+ * Phase 5 of data #155 — closed enum on the awarding authority's
+ * coarse geographic + sector scope. Mirrors the api's `?scope=` filter
+ * on `GET /v1/certifications` (pinned by the
+ * `certifications_issuer_scope_chk` CHECK constraint in api migration
+ * 0064). 100% backfilled in prod 2026-06-16; a null on the wire
+ * indicates a reconciler regression rather than a missing value.
+ *
+ * Today only `'state'` (~22,398 prod rows: every NY / TX / PA / OH /
+ * NJ / MI UCP issuer) and `'federal'` (~21 prod rows: SBA 8(a) /
+ * HUBZone / SDB / AbilityOne / 8(a) JV) carry data. The other three
+ * are reserved for future sources (EU/UK registers → `'international'`,
+ * tribal nation authorities → `'tribal'`, private national bodies
+ * like NMSDC/WBENC → `'private'`).
+ */
+export type CertificationIssuerScope =
+  | "state"
+  | "federal"
+  | "international"
+  | "tribal"
+  | "private";
+
 export interface Certification {
   object?: "certification";
   id: string;
@@ -490,6 +512,13 @@ export interface Certification {
   expiring_soon: boolean;
   retrieved_at: string;
   classifications: Classification[];
+  /**
+   * Phase 5 of data #155 — coarse awarding-authority scope. Reads
+   * the first-class `issuer_scope` column (api migration 0064).
+   * 100% non-null in prod today; any null is a reconciler regression.
+   * Filter the list via `?scope=` on `CertificationsListParams`.
+   */
+  issuer_scope?: CertificationIssuerScope | null;
   source: {
     name: string;
     mapping_version: string;
@@ -525,6 +554,14 @@ export interface CertificationsListParams {
   npi?: string;
   issuer?: string;
   status?: CertificationStatus;
+  /**
+   * Phase 5 of data #155 — coarse awarding-authority scope filter.
+   * Reads the first-class `issuer_scope` column server-side. Pass a
+   * single value (e.g. `'federal'`) or an array — the SDK joins the
+   * array with `,` for the api's comma-separated multi-select form
+   * (OR within the param). Closed enum; unknown values 400 at the api.
+   */
+  scope?: CertificationIssuerScope | CertificationIssuerScope[];
   /** 1–365. Restricts to certs whose `expires_at` is within N days. */
   expiring_within_days?: number;
   /** Default 50, max 200. */
