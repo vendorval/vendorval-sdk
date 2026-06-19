@@ -57,11 +57,18 @@ const ALLOWED_TS_ONLY = new Set([
   // Tracked under TD-#6 (SDK type parity). Adding here so CI is not red
   // while the Python additions land incrementally. As each lands, delete
   // it from this set.
+  'AddressLookupRequest',
+  'AddressLookupResponse',
   'AddressRecord',
+  'AddressSuggestParams',
+  'AddressSuggestResponse',
+  'AddressSuggestion',
   'BulkJob',
   'CertificationIssuerScope',
   'CertificationStatus',
   'CertificationsListParams',
+  'Deliverability',
+  'DpvCode',
   'ClassificationCategory',
   'ClassificationEthnicSubcategory',
   'CreateEntityRequest',
