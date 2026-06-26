@@ -53,7 +53,7 @@ vendorval-sdk/
     node/        # TypeScript SDK (publishes to npm as `vendorval-sdk`)
     python/      # Python SDK (publishes to PyPI as `vendorval-sdk`)
   specs/
-    openapi.json # Snapshot of the API's OpenAPI spec, mirrored from vendorval-api
+    openapi.json # Snapshot of the API's OpenAPI spec, mirrored from upstream
   examples/      # Per-language runnable examples
   scripts/       # Spec sync helpers
 ```

@@ -18,7 +18,7 @@ const federalCerts = await client.certifications.list({ scope: "federal" });
 const both = await client.certifications.list({ scope: ["federal", "state"] });
 ```
 
-Pairs with the corresponding `?scope=` support in the vendorval-api.
+Pairs with the corresponding `?scope=` support in the VendorVal API.
 
 ## 0.5.0 — 2026-05-12
 
@@ -37,7 +37,7 @@ const certs = await client.certifications.list({ tin: "12-3456789" });
 
 ## 0.4.0 — 2026-05-12
 
-**Type-only release for the lookup-response reshape.** Coordinated with the vendorval-api `entity.sources` change.
+**Type-only release for the lookup-response reshape.** Coordinated with the VendorVal API's `entity.sources` change.
 
 **Breaking — `Entity.sources` shape changed:**
 

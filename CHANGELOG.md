@@ -7,7 +7,7 @@ This file is an aggregate index. Per-package changelogs live alongside each pack
 
 ## 2026-05-14
 
-- **`entity.regulatory_disclosures[]`** (Node 0.7.0 + Python 0.7.0). Adds a new `RegulatoryDisclosure` type (Node `interface` + Python `TypedDict`) and an optional `regulatory_disclosures` array on `Entity`. Type-only release coordinated with the corresponding vendorval-api change that adds the regulatory-disclosures surface to the lookup response.
+- **`entity.regulatory_disclosures[]`** (Node 0.7.0 + Python 0.7.0). Adds a new `RegulatoryDisclosure` type (Node `interface` + Python `TypedDict`) and an optional `regulatory_disclosures` array on `Entity`. Type-only release coordinated with a corresponding change in the VendorVal API that adds the regulatory-disclosures surface to the lookup response.
 
   A third lane on the lookup response — distinct from `exclusions` (procurement bars) and `classifications` (self-declared statements). Disclosures are externally-mandated public filings the entity stays bid-eligible under. First source: DOJ FARA — each row is one registrant↔foreign-principal binding; a registrant with N principals lands as N rows sharing `registration_number`.
 
@@ -21,7 +21,7 @@ This file is an aggregate index. Per-package changelogs live alongside each pack
 
 - **Certifications identifier-resolved scoping** (Node 0.5.0 + Python 0.5.0). Adds `tin`, `uei`, `duns`, `lei`, `vat_id`, `state_entity_id`, and `npi` params on `certifications.list`. Server-side `/v1/certifications` already supported these; this release exposes them through the SDK signatures. Saves callers the 2-step lookup-then-query flow.
 
-- **Lookup-response reshape** (Node 0.4.0 + Python 0.4.0). Type-only release coordinated with the vendorval-api `entity.sources` change. Breaking: `Entity.sources` repurposed from an `Array<…>` of per-source registration history records (now `Entity.registrations`) to a `Record<string, Record<string, unknown>>` map of per-source blocks keyed by source name. Also adds typed issuer-qualified identifier inputs (`state_entity_id`, `diversity_cert_id`, `contractor_license_id`, `medicaid_provider_id`, `wcb_employer_number`) accepting either `"<ISSUER>:<value>"` strings or `{value, issuer}` objects.
+- **Lookup-response reshape** (Node 0.4.0 + Python 0.4.0). Type-only release coordinated with the VendorVal API's `entity.sources` change. Breaking: `Entity.sources` repurposed from an `Array<…>` of per-source registration history records (now `Entity.registrations`) to a `Record<string, Record<string, unknown>>` map of per-source blocks keyed by source name. Also adds typed issuer-qualified identifier inputs (`state_entity_id`, `diversity_cert_id`, `contractor_license_id`, `medicaid_provider_id`, `wcb_employer_number`) accepting either `"<ISSUER>:<value>"` strings or `{value, issuer}` objects.
 
 ## 2026-05-08
 
