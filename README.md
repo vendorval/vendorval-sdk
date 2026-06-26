@@ -2,12 +2,16 @@
 
 Official client libraries for the [VendorVal API](https://docs.vendorval.com).
 
+[![npm](https://img.shields.io/npm/v/vendorval-sdk?label=npm)](https://www.npmjs.com/package/vendorval-sdk)
+[![PyPI](https://img.shields.io/pypi/v/vendorval-sdk?label=PyPI)](https://pypi.org/project/vendorval-sdk/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 | Language | Package | Source |
 |----------|---------|--------|
 | Node / TypeScript | [`vendorval-sdk`](https://www.npmjs.com/package/vendorval-sdk) on npm | [`packages/node`](./packages/node) |
 | Python | [`vendorval-sdk`](https://pypi.org/project/vendorval-sdk/) on PyPI | [`packages/python`](./packages/python) |
 
-Both SDKs target the VendorVal REST API (`https://api.vendorval.com/v1`) and ship the same surface: entity lookup, verification (with polling helper), monitoring, providers, usage, and jobs.
+Both SDKs target the VendorVal REST API (`https://api.vendorval.com/v1`) and ship the same surface: entity lookup, verification (with polling helper), monitoring, certifications, addresses, providers, usage, jobs, and country metadata.
 
 ## Quick start
 
@@ -49,7 +53,7 @@ vendorval-sdk/
     node/        # TypeScript SDK (publishes to npm as `vendorval-sdk`)
     python/      # Python SDK (publishes to PyPI as `vendorval-sdk`)
   specs/
-    openapi.json # Snapshot of the API's OpenAPI spec, mirrored from vendorval-api
+    openapi.json # Snapshot of the API's OpenAPI spec, mirrored from upstream
   examples/      # Per-language runnable examples
   scripts/       # Spec sync helpers
 ```
@@ -67,6 +71,10 @@ uv run pytest
 ```
 
 See [`RELEASING.md`](./RELEASING.md) for how to cut new releases.
+
+## Contributing
+
+Contributions are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup, the Node/Python parity and lint expectations, and the PR workflow.
 
 ## Issue tracking
 

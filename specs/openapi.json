@@ -3,7 +3,7 @@
   "info": {
     "title": "vendorval API",
     "version": "1.0.0",
-    "description": "Placeholder. Run `pnpm sync-spec` to populate from the upstream vendorval-api release."
+    "description": "Placeholder. Run `node scripts/sync-openapi.mjs` to populate from the upstream VendorVal API release."
   },
   "security": [{ "bearerAuth": [] }],
   "paths": {},

@@ -7,7 +7,7 @@ import type {
 } from "../types/shared.js";
 
 /**
- * Phase S3 / S4 — standalone address endpoints.
+ * Standalone address endpoints.
  *
  * Both endpoints are FREE (no per-call meter), rate-limited per tenant to
  * align with USPS upstream + DB-load budgets. Use these for one-shot

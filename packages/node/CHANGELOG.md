@@ -2,24 +2,23 @@
 
 ## 0.8.0 — 2026-06-19
 
-**Type-only release** — adds Phase 5 of data #155 fan-out on `client.certifications`.
+**Type-only release** — adds awarding-authority scope filtering on `client.certifications`.
 
 - New `CertificationIssuerScope` union (`"state" | "federal" | "international" | "tribal" | "private"`).
-- `Certification.issuer_scope?: CertificationIssuerScope | null` — populated from the api's first-class `gold.certifications.issuer_scope` column shipped in api migration 0064. 100% non-null in prod 2026-06-16 (federal=21, state=22398); any null is a reconciler regression.
-- `CertificationsListParams.scope?: CertificationIssuerScope | CertificationIssuerScope[]` — comma-separated multi-select. Pass a single value (`'federal'`) or an array; the SDK joins arrays with `,` for the api's wire format.
+- `Certification.issuer_scope?: CertificationIssuerScope | null` — populated from the API's `issuer_scope` field.
+- `CertificationsListParams.scope?: CertificationIssuerScope | CertificationIssuerScope[]` — comma-separated multi-select. Pass a single value (`'federal'`) or an array; the SDK joins arrays with `,` for the API's wire format.
 
 ```ts
 // Every federal cert across all your entities — the canonical
 // "show me my SBA certs" filter. Preferred over the older
-// `?certifying_state=FEDERAL`, which under-counted federal rows
-// split between NULL and 'FEDERAL'.
+// `?certifying_state=FEDERAL` filter.
 const federalCerts = await client.certifications.list({ scope: "federal" });
 
 // Multi-select (OR within the filter).
 const both = await client.certifications.list({ scope: ["federal", "state"] });
 ```
 
-Pairs with vendorval-api PR #441 (Phase 4 of data #155) and vendorval-app PR #107.
+Pairs with the corresponding `?scope=` support in the VendorVal API.
 
 ## 0.5.0 — 2026-05-12
 
@@ -38,12 +37,12 @@ const certs = await client.certifications.list({ tin: "12-3456789" });
 
 ## 0.4.0 — 2026-05-12
 
-**Type-only release for the Phase O.A.reconciler lookup-response reshape.** Coordinated with vendorval-api `entity.sources` change and vendorval-data #19 (NY DOS reconciler Dagster asset).
+**Type-only release for the lookup-response reshape.** Coordinated with the VendorVal API's `entity.sources` change.
 
 **Breaking — `Entity.sources` shape changed:**
 
 - The legacy `Entity.sources: Array<Record<string, unknown>>` (per-source verification/registration history records) is now `Entity.registrations: SourceRegistration[]`.
-- The `Entity.sources` field is now `Record<string, Record<string, unknown>>` — a map keyed by source name (`ny_dos`, `sam_us`, …) carrying frozen per-source blocks the reconciler produced when it matched silver rows to this entity.
+- The `Entity.sources` field is now `Record<string, Record<string, unknown>>` — a map keyed by source name (`ny_dos`, `sam_us`, …) carrying the per-source blocks the API captured for this entity.
 
 ```diff
 - for (const src of entity.sources ?? []) { /* render history record */ }
@@ -84,7 +83,7 @@ Also: top-level `npi` is now a typed field on `LookupIdentifiers` (was already i
 
 The default export, named exports, and runtime behaviour are unchanged.
 
-**New — country-aware SDK surface (Phase J):**
+**New — country-aware SDK surface:**
 
 - `IdentifierType` extended with `vat_id`; `CheckType` extended with `vat_validation`, `lei_validation`, `sanctions_screening`.
 - New `CountryCode`, `EntityRegion`, `CountryTier` types and a typed `SupportedCountrySummary` / `SupportedCountriesResponse` pair mirroring `/v1/meta/countries`.

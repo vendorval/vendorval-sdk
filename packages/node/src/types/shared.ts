@@ -1,5 +1,5 @@
 /**
- * Shared types mirroring vendorval-api/packages/common/src/types.
+ * Shared types mirroring the VendorVal API response shapes.
  * Kept loose where the API surface is unstable (refresh, sources) so SDK
  * consumers can opt into stricter shapes once the spec stabilizes.
  */
@@ -15,12 +15,11 @@ export type IdentifierType =
   | "dba"
   | "domain"
   | "phone"
-  // `state_registration` stays as a deprecated alias for `state_entity_id`
-  // during the Phase N transition window. Both are accepted server-side.
+  // `state_registration` is a deprecated alias for `state_entity_id`.
+  // Both are accepted by the API.
   | "state_registration"
-  // Phase N (Workstream C, memo §4.3) — 6 new issuer-qualified identifier
-  // types. The API accepts them today; adapters that emit them will land
-  // in Phase O.A onwards.
+  // Issuer-qualified identifier types. The API accepts these today;
+  // population from upstream sources is rolling out.
   | "state_entity_id"
   | "diversity_cert_id"
   | "contractor_license_id"
@@ -40,7 +39,6 @@ export type CheckType =
 
 /**
  * ISO 3166-1 alpha-2 country codes the API currently supports.
- * Mirrors `vendorval-api/packages/common/src/country/supported-countries.ts`.
  * The full list is also discoverable at runtime via `client.meta.listSupportedCountries()`.
  */
 export type CountryCode =
@@ -113,9 +111,9 @@ export interface IdentifierRecord {
 }
 
 /**
- * Phase S3 / S4 — standalone address endpoints (free, rate-limited per
- * tenant). Distinct from `AddressRecord` (which is the per-entity address
- * row returned on entity reads).
+ * Standalone address endpoints (free, rate-limited per tenant). Distinct
+ * from `AddressRecord` (which is the per-entity address row returned on
+ * entity reads).
  */
 export interface AddressLookupRequest {
   street_address: string;
@@ -201,9 +199,9 @@ export interface AddressRecord {
   postal_code?: string | null;
   country?: string | null;
   /**
-   * Phase S3.1 — USPS-standardized sibling fields, populated when the
-   * address has been verified via `/v1/verify usps_address` or the
-   * background sweep. NULL until then.
+   * USPS-standardized sibling fields, populated when the address has been
+   * verified via `/v1/verify usps_address` or a background sweep. NULL
+   * until then.
    */
   standardized?: {
     line_1?: string | null;
@@ -221,10 +219,10 @@ export interface AddressRecord {
 }
 
 /**
- * One per-source verification/registration history record. Until Phase
- * O.A.reconciler shipped this was returned on `entity.sources[]`; it now
- * lives on `entity.registrations[]` because `sources` was repurposed to
- * carry per-source frozen blocks (see `Entity.sources` below).
+ * One per-source verification/registration history record. Previously
+ * returned on `entity.sources[]`; it now lives on `entity.registrations[]`
+ * because `sources` was repurposed to carry per-source blocks (see
+ * `Entity.sources` below).
  */
 export type SourceRegistration = Record<string, unknown>;
 
@@ -238,8 +236,9 @@ export interface Entity {
   country: string;
   confidence?: number;
   /**
-   * Tier A enrichment — populated by SAM hydration. Null until the next
-   * authoritative-source sync; older entities will hydrate on next pull.
+   * Enrichment fields populated from authoritative-source data (e.g.
+   * SAM.gov). Null until the entity has been enriched; older entities
+   * populate on the next sync.
    */
   dba_name?: string | null;
   website_url?: string | null;
@@ -251,26 +250,25 @@ export interface Entity {
   sam_gov?: Record<string, unknown> | null;
   /**
    * Per-source verification/registration history. Renamed from the legacy
-   * top-level `sources` field in Phase O.A.reconciler — the name was
-   * needed for the frozen-block map below.
+   * top-level `sources` field — that name now holds the per-source block
+   * map below.
    */
   registrations?: SourceRegistration[];
   /**
-   * Phase O.A.reconciler — per-source frozen blocks keyed by source name
-   * (`ny_dos`, `sam_us`, etc.). Each value is the source-specific block
-   * the reconciler froze when it matched a silver row to this entity,
-   * carrying `retrieved_at` plus the source's verbatim fields. Empty `{}`
-   * until a reconciler has run for at least one source. Use this for
-   * source-nested display (e.g. "what does NY DOS say about this
+   * Per-source blocks keyed by source name (`ny_dos`, `sam_us`, etc.).
+   * Each value is the source-specific block the API captured for this
+   * entity, carrying `retrieved_at` plus the source's verbatim fields.
+   * Empty `{}` until the API has data from at least one source. Use this
+   * for source-nested display (e.g. "what does NY DOS say about this
    * vendor?"). See `/api-reference/lookup#entitysources--per-source-blocks`.
    */
   sources?: Record<string, Record<string, unknown>>;
   /**
-   * Phase N (Workstream D) — per-attribute provenance. Maps an entity
-   * column name (`legal_name`, `dba_name`, `website_url`,
-   * `state_of_incorporation`) to the source id that most recently wrote
-   * it. Empty `{}` until the gold-layer reconciler has run. Treat
-   * absence of a key as "not yet attributed", not "no source." See
+   * Per-attribute provenance. Maps an entity field name (`legal_name`,
+   * `dba_name`, `website_url`, `state_of_incorporation`) to the source id
+   * that most recently wrote it. Empty `{}` until attribution data is
+   * available. Treat absence of a key as "not yet attributed", not
+   * "no source." See
    * `/api-reference/lookup#field_attribution--per-attribute-provenance`.
    */
   field_attribution?: Record<string, string>;
@@ -280,9 +278,9 @@ export interface Entity {
    * (self-declared statements) — these are externally-mandated
    * filings (FARA today, federal lobbying / state ethics planned).
    *
-   * Empty `[]` until a reconciler has written rows. Customer compliance
-   * code that asks "has this vendor disclosed any regulatory filings?"
-   * keys on this lane. See
+   * Empty `[]` until disclosure data is available for the entity. Customer
+   * compliance code that asks "has this vendor disclosed any regulatory
+   * filings?" keys on this lane. See
    * `/api-reference/lookup#entityregulatory_disclosures`.
    */
   regulatory_disclosures?: RegulatoryDisclosure[];
@@ -300,8 +298,8 @@ export interface Entity {
  * `regulatory_disclosures` filter "needs additional review."
  *
  * Future regulatory feeds (federal lobbying, state ethics) widen
- * `source` and `disclosure_type` (closed sets on the API side; the
- * gold table's CHECK constraints widen with each new feed).
+ * `source` and `disclosure_type` (closed sets on the API side that
+ * widen with each new feed).
  */
 export interface RegulatoryDisclosure {
   id: string;
@@ -330,11 +328,11 @@ export interface RegulatoryDisclosure {
 
 /**
  * Per-check result status. The SDK auto-attaches `Accept-Version` (see
- * `request.ts`) so the wire returns the Phase N (Workstream A) widened
- * enum verbatim. Legacy values still appear in responses today because
- * no adapter emits the new ones yet; both shapes are listed in the
- * union so when adapters DO start emitting the new values, calling
- * code renders them correctly without a type-only SDK release.
+ * `request.ts`) so the wire returns the widened enum verbatim. Legacy
+ * values still appear in responses today because no source emits the new
+ * ones yet; both shapes are listed in the union so when the new values
+ * do start appearing, calling code renders them correctly without a
+ * type-only SDK release.
  */
 export type CheckStatus =
   | "pass" | "fail" | "inconclusive" | "error" | "pending"
@@ -424,7 +422,7 @@ export interface BulkJob {
   result_url?: string | null;
 }
 
-// ─── Certifications (Phase N, Workstream B) ──────────────────────────────
+// ─── Certifications ──────────────────────────────────────────────────────
 
 export type CertificationStatus =
   | "active"
@@ -455,9 +453,9 @@ export type ClassificationEthnicSubcategory =
 export interface Classification {
   category: ClassificationCategory;
   /**
-   * Meaningful only when `category === "minority_owned"`. The API CHECK
-   * constraint enforces this — every minority-owned classification
-   * carries a subcategory; no other category does.
+   * Meaningful only when `category === "minority_owned"`. The API enforces
+   * this — every minority-owned classification carries a subcategory; no
+   * other category does.
    */
   ethnic_subcategory: ClassificationEthnicSubcategory | null;
   /** The issuer's exact original wording, preserved verbatim. */
@@ -465,19 +463,14 @@ export interface Classification {
 }
 
 /**
- * Phase 5 of data #155 — closed enum on the awarding authority's
- * coarse geographic + sector scope. Mirrors the api's `?scope=` filter
- * on `GET /v1/certifications` (pinned by the
- * `certifications_issuer_scope_chk` CHECK constraint in api migration
- * 0064). 100% backfilled in prod 2026-06-16; a null on the wire
- * indicates a reconciler regression rather than a missing value.
+ * Coarse geographic + sector scope of the awarding authority. Mirrors
+ * the API's `?scope=` filter on `GET /v1/certifications`.
  *
- * Today only `'state'` (~22,398 prod rows: every NY / TX / PA / OH /
- * NJ / MI UCP issuer) and `'federal'` (~21 prod rows: SBA 8(a) /
- * HUBZone / SDB / AbilityOne / 8(a) JV) carry data. The other three
- * are reserved for future sources (EU/UK registers → `'international'`,
- * tribal nation authorities → `'tribal'`, private national bodies
- * like NMSDC/WBENC → `'private'`).
+ * Today `'state'` (state UCP issuers — NY, TX, PA, OH, NJ, MI, …) and
+ * `'federal'` (SBA 8(a) / HUBZone / SDB / AbilityOne / 8(a) JV) carry
+ * data. The other three are reserved for future sources (EU/UK registers
+ * → `'international'`, tribal nation authorities → `'tribal'`, private
+ * national bodies like NMSDC/WBENC → `'private'`).
  */
 export type CertificationIssuerScope =
   | "state"
@@ -513,10 +506,8 @@ export interface Certification {
   retrieved_at: string;
   classifications: Classification[];
   /**
-   * Phase 5 of data #155 — coarse awarding-authority scope. Reads
-   * the first-class `issuer_scope` column (api migration 0064).
-   * 100% non-null in prod today; any null is a reconciler regression.
-   * Filter the list via `?scope=` on `CertificationsListParams`.
+   * Coarse awarding-authority scope. Filter the list via `?scope=` on
+   * `CertificationsListParams`.
    */
   issuer_scope?: CertificationIssuerScope | null;
   source: {
@@ -540,10 +531,10 @@ export interface CertificationsListResponse {
 export interface CertificationsListParams {
   entity_id?: string;
   /**
-   * Identifier-resolved scoping. The server normalizes + hashes + joins on
-   * `identifiers.value_hash` (same path as `/v1/entities/lookup`). Saves the
-   * caller a 2-step lookup-then-query flow. Tenant-scoped at the API.
-   * Passing multiple identifiers that resolve to different entities → 400.
+   * Identifier-resolved scoping. The server resolves these the same way as
+   * `/v1/entities/lookup`, saving the caller a 2-step lookup-then-query
+   * flow. Passing multiple identifiers that resolve to different
+   * entities → 400.
    */
   tin?: string;
   uei?: string;
@@ -555,11 +546,10 @@ export interface CertificationsListParams {
   issuer?: string;
   status?: CertificationStatus;
   /**
-   * Phase 5 of data #155 — coarse awarding-authority scope filter.
-   * Reads the first-class `issuer_scope` column server-side. Pass a
-   * single value (e.g. `'federal'`) or an array — the SDK joins the
-   * array with `,` for the api's comma-separated multi-select form
-   * (OR within the param). Closed enum; unknown values 400 at the api.
+   * Coarse awarding-authority scope filter. Pass a single value (e.g.
+   * `'federal'`) or an array — the SDK joins the array with `,` for the
+   * API's comma-separated multi-select form (OR within the param). Closed
+   * enum; unknown values 400 at the API.
    */
   scope?: CertificationIssuerScope | CertificationIssuerScope[];
   /** 1–365. Restricts to certs whose `expires_at` is within N days. */

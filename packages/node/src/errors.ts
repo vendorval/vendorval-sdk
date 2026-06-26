@@ -1,5 +1,5 @@
 /**
- * Error envelope mirrors `vendorval-api/packages/common/src/errors/api-errors.ts`:
+ * Error envelope mirrors the VendorVal API error shape:
  *   { error: { type, code, message, param?, details? } }
  */
 
@@ -149,7 +149,7 @@ const STATUS_CONSTRUCTORS: Record<number, new (init: VendorvalErrorInit) => Vend
   403: PermissionError,
   404: NotFoundError,
   // 422 is an invalid-request status the API uses for semantic-validation
-  // failures (Phase J country routing emits 422 + CountryError, but other
+  // failures (country routing emits 422 + CountryError, but other
   // semantic violations also land here). Mapping to ValidationError keeps
   // catch-all 4xx handlers working consistently.
   422: ValidationError,
@@ -201,7 +201,7 @@ export function errorFromResponse(args: {
     });
   }
 
-  // Phase J: 422 envelopes with a country-routing code surface as CountryError
+  // 422 envelopes with a country-routing code surface as CountryError
   // (a ValidationError subclass) so consumers can switch on `err.code` and
   // inspect typed `err.details`.
   if (status === 422 && COUNTRY_ERROR_CODES.has(code)) {

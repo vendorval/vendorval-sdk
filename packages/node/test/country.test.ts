@@ -10,7 +10,7 @@ import {
 } from "../src/index.js";
 
 /**
- * Phase J smoke tests — covers the new country routing surface end-to-end:
+ * Country-routing smoke tests — covers the country surface end-to-end:
  *   - meta endpoints (listSupportedCountries, getSupportedCountry)
  *   - country forwarded on request bodies (lookup, verify, entities.create)
  *   - vat_id is accepted as an identifier
@@ -129,7 +129,7 @@ describe("country routing on request bodies", () => {
     expect(body.identifiers).toEqual([{ type: "vat_id", value: "DE123456789" }]);
   });
 
-  it("entities.create forwards `country` (already supported pre-Phase J)", async () => {
+  it("entities.create forwards `country`", async () => {
     const fetchMock = mockJson({ id: "ent_x", legal_name: "Acme GmbH", country: "DE" });
     await client(fetchMock).entities.create({
       identifiers: [{ type: "vat_id", value: "DE123456789" }],

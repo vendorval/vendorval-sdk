@@ -28,7 +28,7 @@ jobs:
           branch: chore/sync-openapi
           title: "chore(specs): sync openapi.json from upstream"
           body: |
-            Automated sync of `specs/openapi.json` from the latest [vendorval-api](https://github.com/Modali-Consulting/vendorval-api) release.
+            Automated sync of `specs/openapi.json` from the latest upstream VendorVal API release.
 
             Review the diff to see if the SDK surface needs updating.
           labels: spec-sync,automated

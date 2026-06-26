@@ -98,7 +98,7 @@ describe("Vendorval client construction", () => {
     expect(r._requestId).toBe("req_test_1");
   });
 
-  // Phase N (Workstream A) — opt-in to the widened per-result enum is
+  // Opt-in to the widened per-result enum is
   // SDK-default. Without this header the API would alias the new values
   // (clear / exact_match / probable_match) down to the legacy 4-value
   // enum for backward compatibility.
@@ -152,7 +152,7 @@ describe("Vendorval client construction", () => {
   });
 });
 
-describe("CertificationsResource (Phase N Workstream B)", () => {
+describe("CertificationsResource", () => {
   it("list() forwards filters as query params and unwraps the standard list envelope", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

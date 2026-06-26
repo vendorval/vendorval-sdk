@@ -1,5 +1,5 @@
 # OpenAPI spec snapshot
 
-`openapi.json` is mirrored from [vendorval-api](https://github.com/Modali-Consulting/vendorval-api). Do not hand-edit it — run `pnpm sync-spec` (or `node scripts/sync-openapi.mjs`) to refresh from the upstream release.
+`openapi.json` is mirrored from the upstream VendorVal API releases. Do not hand-edit it — run `node scripts/sync-openapi.mjs` to refresh it.
 
 The `spec-drift.yml` GitHub Action runs this nightly and opens a PR if the snapshot has changed.
