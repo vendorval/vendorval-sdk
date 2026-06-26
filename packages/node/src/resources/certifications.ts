@@ -7,8 +7,7 @@ import type {
 
 /**
  * `client.certifications.*` — read access to entity credentials
- * (state MWBE, NMSDC, WBENC, ISO, SOC 2, etc.). Phase N customer-facing
- * reshape, Workstream B.
+ * (state MWBE, NMSDC, WBENC, ISO, SOC 2, etc.).
  *
  * Today this surface is read-only; POST + DELETE (manual upload + revoke)
  * land in a follow-up SDK release once those API routes ship.
@@ -35,7 +34,7 @@ export class CertificationsResource {
   ): Promise<CertificationsListResponse & { _requestId: string | null }> {
     const query: Record<string, string | number | boolean | undefined> = {};
     if (params.entity_id !== undefined) query.entity_id = params.entity_id;
-    // Identifier-resolved scoping — server normalizes + hashes + joins.
+    // Identifier-resolved scoping — resolved server-side.
     if (params.tin !== undefined) query.tin = params.tin;
     if (params.uei !== undefined) query.uei = params.uei;
     if (params.duns !== undefined) query.duns = params.duns;
@@ -45,9 +44,9 @@ export class CertificationsResource {
     if (params.npi !== undefined) query.npi = params.npi;
     if (params.issuer !== undefined) query.issuer = params.issuer;
     if (params.status !== undefined) query.status = params.status;
-    // Phase 5 of data #155 — `?scope=` is comma-separated multi-select
-    // at the wire level. SDK consumers can pass a single value or an
-    // array; we join the array here so the typing stays ergonomic.
+    // `?scope=` is comma-separated multi-select at the wire level. SDK
+    // consumers can pass a single value or an array; we join the array
+    // here so the typing stays ergonomic.
     if (params.scope !== undefined) {
       query.scope = Array.isArray(params.scope) ? params.scope.join(",") : params.scope;
     }

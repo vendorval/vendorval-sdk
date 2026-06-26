@@ -1,4 +1,4 @@
-"""Phase J smoke tests — country routing surface for the Python SDK.
+"""Country-routing smoke tests — country surface for the Python SDK.
 
 Covers:
   - meta endpoints (list_supported_countries, get_supported_country)

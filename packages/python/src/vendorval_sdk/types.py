@@ -27,12 +27,11 @@ IdentifierType = Literal[
     "dba",
     "domain",
     "phone",
-    # `state_registration` stays as a deprecated alias for `state_entity_id`
-    # during the Phase N transition window.
+    # `state_registration` is a deprecated alias for `state_entity_id`.
+    # Both are accepted by the API.
     "state_registration",
-    # Phase N (Workstream C, memo §4.3) — 6 new issuer-qualified identifier
-    # types. The API accepts them today; adapters that emit them will land
-    # in Phase O.A onwards.
+    # Issuer-qualified identifier types. The API accepts these today;
+    # population from upstream sources is rolling out.
     "state_entity_id",
     "diversity_cert_id",
     "contractor_license_id",
@@ -51,8 +50,7 @@ CheckType = Literal[
     "usps_address",
 ]
 
-# ISO 3166-1 alpha-2 country codes the API currently supports. Mirrors
-# `vendorval-api/packages/common/src/country/supported-countries.ts`. The full
+# ISO 3166-1 alpha-2 country codes the API currently supports. The full
 # list is also discoverable at runtime via `client.meta.list_supported_countries()`.
 CountryCode = Literal[
     "US",
@@ -114,8 +112,8 @@ class VerifyIdentifierObject(TypedDict, total=False):
     state_registration: str
     domain: str
     phone: str
-    # Phase N (Workstream C) — issuer-qualified identifiers. Each accepts
-    # either an embedded `"<ISSUER>:<value>"` string or an explicit
+    # Issuer-qualified identifiers. Each accepts either an embedded
+    # `"<ISSUER>:<value>"` string or an explicit
     # `{"value": ..., "issuer": ...}` dict.
     state_entity_id: IssuerQualifiedIdentifierInput
     diversity_cert_id: IssuerQualifiedIdentifierInput
@@ -190,10 +188,10 @@ class IdentifierRecord(TypedDict, total=False):
     last_seen_at: str
 
 
-# One per-source verification/registration history record. Until
-# Phase O.A.reconciler shipped this was returned on `entity["sources"]`;
-# it now lives on `entity["registrations"]` because `sources` was
-# repurposed to carry per-source frozen blocks (see `Entity.sources` below).
+# One per-source verification/registration history record. Previously
+# returned on `entity["sources"]`; it now lives on
+# `entity["registrations"]` because `sources` was repurposed to carry
+# per-source blocks (see `Entity.sources` below).
 SourceRegistration = dict[str, Any]
 
 
@@ -206,8 +204,8 @@ class Entity(TypedDict, total=False):
     status: str
     country: str
     confidence: float
-    # Tier A enrichment — populated by SAM hydration. Null until the next
-    # authoritative-source sync.
+    # Enrichment fields populated from authoritative-source data (e.g.
+    # SAM.gov). Null until the entity has been enriched.
     dba_name: str | None
     website_url: str | None
     state_of_incorporation: str | None
@@ -217,25 +215,24 @@ class Entity(TypedDict, total=False):
     addresses: list[Any]
     sam_gov: Any | None
     # Per-source verification/registration history. Renamed from the legacy
-    # top-level `sources` field in Phase O.A.reconciler — the name was
-    # needed for the frozen-block map below.
+    # top-level `sources` field — that name now holds the per-source block
+    # map below.
     registrations: list[SourceRegistration]
-    # Phase O.A.reconciler — per-source frozen blocks keyed by source name
-    # (`ny_dos`, `sam_us`, etc.). Each value is the source-specific block
-    # the reconciler froze when it matched a silver row to this entity,
-    # carrying `retrieved_at` plus the source's verbatim fields. Empty `{}`
-    # until a reconciler has run for at least one source.
+    # Per-source blocks keyed by source name (`ny_dos`, `sam_us`, etc.).
+    # Each value is the source-specific block the API captured for this
+    # entity, carrying `retrieved_at` plus the source's verbatim fields.
+    # Empty `{}` until the API has data from at least one source.
     sources: dict[str, dict[str, Any]]
-    # Phase N (Workstream D) — per-attribute provenance. Maps an entity
-    # column name (`legal_name`, `dba_name`, `website_url`,
-    # `state_of_incorporation`) to the source id that most recently wrote
-    # it. Empty `{}` until the gold-layer reconciler has run.
+    # Per-attribute provenance. Maps an entity field name (`legal_name`,
+    # `dba_name`, `website_url`, `state_of_incorporation`) to the source id
+    # that most recently wrote it. Empty `{}` until attribution data is
+    # available.
     field_attribution: dict[str, str]
     # Public regulatory disclosures attached to the entity. A third lane
     # distinct from exclusions (procurement bars) and classifications
     # (self-declared statements) — these are externally-mandated filings
     # (FARA today, federal lobbying / state ethics planned). Empty `[]`
-    # until a reconciler writes rows.
+    # until disclosure data is available for the entity.
     regulatory_disclosures: list[RegulatoryDisclosure]
 
 
@@ -253,8 +250,8 @@ class RegulatoryDisclosure(TypedDict, total=False):
     `regulatory_disclosures` filter "needs additional review."
 
     Future regulatory feeds (federal lobbying, state ethics) widen
-    `source` and `disclosure_type` as the gold-side CHECK constraints
-    widen.
+    `source` and `disclosure_type` (closed sets on the API side that
+    widen with each new feed).
     """
 
     id: str
@@ -281,11 +278,10 @@ class RegulatoryDisclosure(TypedDict, total=False):
 
 
 # Per-check result status. The SDK auto-attaches `Accept-Version` (see
-# `_request.py`) so the wire returns the Phase N (Workstream A) widened
-# enum verbatim. Legacy values still appear today because no adapter
-# emits the new ones yet; both shapes are listed so when adapters DO
-# start emitting them, calling code renders correctly without a type-only
-# SDK release.
+# `_request.py`) so the wire returns the widened enum verbatim. Legacy
+# values still appear today because no source emits the new ones yet;
+# both shapes are listed so when the new values do start appearing,
+# calling code renders correctly without a type-only SDK release.
 CheckStatus = Literal[
     "pass",
     "fail",
@@ -330,7 +326,7 @@ class VerificationBundle(TypedDict):
     verification: Verification
 
 
-# ─── Certifications (Phase N, Workstream B) ──────────────────────────────
+# ─── Certifications ──────────────────────────────────────────────────────
 
 CertificationStatus = Literal[
     "active",
@@ -342,16 +338,12 @@ CertificationStatus = Literal[
     "not_certified",
 ]
 
-# Phase 5 of data #155 — closed enum on the awarding authority's coarse
-# geographic + sector scope. Mirrors the api's `?scope=` filter on
-# GET /v1/certifications (pinned by the certifications_issuer_scope_chk
-# CHECK constraint in api migration 0064). 100% backfilled in prod
-# 2026-06-16; a null on the wire indicates a reconciler regression
-# rather than a missing value.
+# Coarse geographic + sector scope of the awarding authority. Mirrors
+# the API's `?scope=` filter on GET /v1/certifications.
 #
-# Today only `state` (~22,398 prod rows) and `federal` (~21 prod rows:
-# SBA 8(a) / HUBZone / SDB / AbilityOne / 8(a) JV) carry data; the
-# other three are reserved for future sources.
+# Today `state` (state UCP issuers) and `federal` (SBA 8(a) / HUBZone /
+# SDB / AbilityOne / 8(a) JV) carry data; the other three are reserved
+# for future sources.
 CertificationIssuerScope = Literal[
     "state",
     "federal",
@@ -382,9 +374,9 @@ ClassificationEthnicSubcategory = Literal[
 
 class Classification(TypedDict, total=False):
     category: ClassificationCategory
-    # Meaningful only when category == "minority_owned". API CHECK
-    # constraint enforces this — every minority_owned classification
-    # carries a subcategory; no other category does.
+    # Meaningful only when category == "minority_owned". The API enforces
+    # this — every minority_owned classification carries a subcategory; no
+    # other category does.
     ethnic_subcategory: ClassificationEthnicSubcategory | None
     raw_label: str
 
@@ -414,10 +406,7 @@ class Certification(TypedDict, total=False):
     expiring_soon: bool
     retrieved_at: str
     classifications: list[Classification]
-    # Phase 5 of data #155 — coarse awarding-authority scope. Reads
-    # the first-class `issuer_scope` column (api migration 0064).
-    # 100% non-null in prod today; any null indicates a reconciler
-    # regression. Filter the list via `scope=` on
+    # Coarse awarding-authority scope. Filter the list via `scope=` on
     # CertificationsResource.list().
     issuer_scope: CertificationIssuerScope | None
     source: CertificationSource

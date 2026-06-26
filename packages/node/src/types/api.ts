@@ -37,11 +37,10 @@ export interface LookupIdentifiers {
   dba?: string;
   domain?: string;
   phone?: string;
-  /** Deprecated alias for `state_entity_id` — kept during the Phase N transition window. */
+  /** Deprecated alias for `state_entity_id`. */
   state_registration?: string;
-  // Phase N (Workstream C) — issuer-qualified identifiers. Each accepts
-  // either an embedded `"<ISSUER>:<value>"` string or an explicit
-  // `{ value, issuer }` object.
+  // Issuer-qualified identifiers. Each accepts either an embedded
+  // `"<ISSUER>:<value>"` string or an explicit `{ value, issuer }` object.
   state_entity_id?: IssuerQualifiedIdentifierInput;
   diversity_cert_id?: IssuerQualifiedIdentifierInput;
   contractor_license_id?: IssuerQualifiedIdentifierInput;

@@ -64,7 +64,7 @@ def test_lookup_sends_bearer_and_version_headers() -> None:
     assert result.request_id == "req_abc"
 
 
-# Phase N (Workstream A) — opt in to the widened per-result enum is
+# Opt in to the widened per-result enum is
 # SDK-default. Without this header the API would alias the new values
 # (`clear` / `exact_match` / `probable_match`) down to the legacy
 # 4-value enum.
@@ -84,7 +84,7 @@ def test_auto_attaches_accept_version_header() -> None:
     assert re.match(r"^\d{4}-\d{2}-\d{2}$", request.headers["accept-version"])
 
 
-# Phase N (Workstream B) — certifications resource is now wired.
+# Certifications resource is now wired.
 @respx.mock
 def test_certifications_list_forwards_filters() -> None:
     route = respx.get("https://api.example/v1/certifications").mock(

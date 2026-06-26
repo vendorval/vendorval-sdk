@@ -121,7 +121,7 @@ _STATUS_TO_CLS: dict[int, type[VendorvalError]] = {
     403: PermissionError,
     404: NotFoundError,
     # 422 is an invalid-request status the API uses for semantic-validation
-    # failures (Phase J country routing emits 422 + CountryError, but other
+    # failures (country routing emits 422 + CountryError, but other
     # semantic violations also land here). Mapping to ValidationError keeps
     # catch-all 4xx handlers working consistently.
     422: ValidationError,
@@ -191,7 +191,7 @@ def error_from_response(
             retry_after=parse_retry_after(headers.get("retry-after")),
         )
 
-    # Phase J: 422 envelopes with a country-routing code surface as CountryError
+    # 422 envelopes with a country-routing code surface as CountryError
     # (a ValidationError subclass) so consumers can switch on `err.code` and
     # inspect the structured `err.details` payload. The `isinstance(code, str)`
     # guard handles malformed payloads where `code` is a non-string (e.g. a list

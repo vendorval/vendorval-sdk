@@ -1,5 +1,4 @@
-"""Certifications resource (sync + async). Phase N customer-facing
-reshape, Workstream B.
+"""Certifications resource (sync + async).
 
 Today this surface is read-only — `list` + `retrieve`. POST + DELETE
 (manual upload + revoke) land in a follow-up SDK release once those
@@ -37,15 +36,13 @@ def _build_query(
     """Build the GET query payload.
 
     Identifier params (tin / uei / duns / lei / vat_id / state_entity_id /
-    npi) are normalized + hashed + joined server-side via the same path
-    `/v1/entities/lookup` uses. Saves callers a 2-step lookup-then-query
-    flow. Tenant-scoped at the API; passing multiple identifiers that
-    resolve to different entities → 400.
+    npi) are resolved server-side via the same path `/v1/entities/lookup`
+    uses. Saves callers a 2-step lookup-then-query flow. Passing multiple
+    identifiers that resolve to different entities → 400.
 
-    `scope` is Phase 5 of data #155 — comma-separated multi-select on
-    the awarding authority's coarse scope. Pass a single value
-    (e.g. `'federal'`) or a list — the SDK joins lists with `,` for
-    the api's wire format.
+    `scope` is a comma-separated multi-select on the awarding authority's
+    coarse scope. Pass a single value (e.g. `'federal'`) or a list — the
+    SDK joins lists with `,` for the API's wire format.
     """
     return {
         "entity_id": entity_id,

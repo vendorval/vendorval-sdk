@@ -126,7 +126,7 @@ def prepare(
         "Authorization": f"Bearer {cfg.api_key}",
         "User-Agent": _USER_AGENT,
         "X-VendorVal-API-Version": API_VERSION,
-        # Phase N (Workstream A) — opt in to the widened per-result enum
+        # Opt in to the widened per-result enum
         # (`clear` / `exact_match` / `probable_match`). The API aliases
         # these down to the legacy 4-value enum for callers without the
         # header. Sending the latest version on every install dogfoods
