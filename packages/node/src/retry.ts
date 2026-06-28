@@ -66,7 +66,7 @@ export function decideRetryFromHeaders(
 function headerSeconds(raw: string | null): number | null {
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
-  if (Number.isFinite(n) && !Number.isNaN(n)) return n;
+  if (Number.isFinite(n)) return n;
   const epoch = Date.parse(raw);
   if (Number.isFinite(epoch)) return Math.max(0, Math.ceil((epoch - Date.now()) / 1000));
   return null;

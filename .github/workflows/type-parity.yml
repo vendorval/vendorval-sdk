@@ -7,6 +7,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Cancel superseded in-progress runs on the same PR; never cancel main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
 jobs:
   parity:
     runs-on: ubuntu-latest
