@@ -1,0 +1,57 @@
+name: Audit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Daily — catch newly-disclosed CVEs in deps even with no open PR.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  node-audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # Informational gate (not a required check): surfaces HIGH+ advisories in
+      # production dependencies. Reads pnpm-lock.yaml — no install needed.
+      - name: Audit (production deps, HIGH+ only)
+        run: pnpm audit --prod --audit-level high
+
+  python-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Audits the resolved dependency environment via pip-audit (OSV advisories).
+      - name: Audit (pip-audit)
+        run: |
+          uv sync
+          uv run --with pip-audit pip-audit
