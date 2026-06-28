@@ -237,7 +237,7 @@ export function parseRetryAfter(headers: Headers): number | undefined {
   if (!raw) return undefined;
   // Per RFC 7231, Retry-After is either delta-seconds or HTTP-date.
   const seconds = Number.parseInt(raw, 10);
-  if (Number.isFinite(seconds) && !Number.isNaN(seconds)) {
+  if (Number.isFinite(seconds)) {
     return seconds;
   }
   const epoch = Date.parse(raw);
