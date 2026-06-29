@@ -33,7 +33,7 @@ uv run mypy src
 
 ## Reporting issues
 
-Please file bugs and feature requests on the [issue tracker](https://github.com/Modali-Consulting/vendorval-sdk/issues).
+Please file bugs and feature requests on the [issue tracker](https://github.com/vendorval/vendorval-sdk/issues).
 
 ## License
 
