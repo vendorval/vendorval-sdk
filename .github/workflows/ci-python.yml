@@ -8,10 +8,6 @@ on:
       - "specs/**"
       - ".github/workflows/ci-python.yml"
   pull_request:
-    paths:
-      - "packages/python/**"
-      - "specs/**"
-      - ".github/workflows/ci-python.yml"
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
 concurrency:
