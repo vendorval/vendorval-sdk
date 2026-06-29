@@ -78,7 +78,7 @@ Contributions are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for set
 
 ## Issue tracking
 
-Report bugs and feature requests via [GitHub issues](https://github.com/Modali-Consulting/vendorval-sdk/issues). Issues should be added to the [VendorVal project](https://github.com/orgs/Modali-Consulting/projects/3).
+Report bugs and feature requests via [GitHub issues](https://github.com/vendorval/vendorval-sdk/issues). Issues should be added to the [VendorVal project](https://github.com/orgs/vendorval/projects/1).
 
 ## License
 

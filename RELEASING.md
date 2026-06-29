@@ -20,7 +20,7 @@ Each SDK has its own version timeline. Tag prefixes determine which package gets
 
 Configure a Trusted Publisher under [PyPI Project Settings → Publishing](https://pypi.org/manage/project/vendorval-sdk/settings/publishing/):
 
-- Owner: `Modali-Consulting`
+- Owner: `vendorval`
 - Repository: `vendorval-sdk`
 - Workflow: `release-python.yml`
 - Environment: `pypi`

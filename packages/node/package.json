@@ -6,11 +6,11 @@
   "homepage": "https://docs.vendorval.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Modali-Consulting/vendorval-sdk.git",
+    "url": "git+https://github.com/vendorval/vendorval-sdk.git",
     "directory": "packages/node"
   },
   "bugs": {
-    "url": "https://github.com/Modali-Consulting/vendorval-sdk/issues"
+    "url": "https://github.com/vendorval/vendorval-sdk/issues"
   },
   "keywords": [
     "vendorval",

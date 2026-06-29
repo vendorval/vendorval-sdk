@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "..", "specs", "openapi.json");
-const REPO = "Modali-Consulting/vendorval-api";
+const REPO = "vendorval/vendorval-api";
 const ASSET_NAME = "openapi.json";
 
 const argv = process.argv.slice(2);

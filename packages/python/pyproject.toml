@@ -33,8 +33,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://docs.vendorval.com"
 Documentation = "https://docs.vendorval.com"
-Source = "https://github.com/Modali-Consulting/vendorval-sdk"
-Issues = "https://github.com/Modali-Consulting/vendorval-sdk/issues"
+Source = "https://github.com/vendorval/vendorval-sdk"
+Issues = "https://github.com/vendorval/vendorval-sdk/issues"
 
 [dependency-groups]
 dev = [
