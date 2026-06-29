@@ -1,3 +1,11 @@
 packages:
   - "packages/node"
   - "examples/node/*"
+
+# Security pins for transitive dev/test tooling (no runtime deps are shipped).
+# - vite: keep on the patched 6.x line; 7.x drops Node 18 support which CI still
+#   builds against. 6.4.3 patches the path-traversal / fs.deny advisories.
+# - esbuild under tsup: lift to the patched 0.28.x line (tsup ships 0.27.x).
+overrides:
+  vite: "^6.4.3"
+  tsup>esbuild: "^0.28.1"
