@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -139,9 +140,9 @@ def parse_retry_after(value: str | None) -> float | None:
         pass
     try:
         dt = parsedate_to_datetime(value)
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        return max(0.0, (dt - datetime.now(timezone.utc)).total_seconds())
+        return max(0.0, (dt - datetime.now(UTC)).total_seconds())
     except (TypeError, ValueError):
         return None
 

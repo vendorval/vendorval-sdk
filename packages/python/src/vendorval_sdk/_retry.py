@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from datetime import UTC
 
 import httpx
 
@@ -40,10 +41,10 @@ def decide_retry(
         reset = headers.get("x-ratelimit-reset")
         if reset:
             try:
-                from datetime import datetime, timezone
+                from datetime import datetime
 
                 ts = datetime.fromisoformat(reset.replace("Z", "+00:00"))
-                delta = (ts - datetime.now(timezone.utc)).total_seconds()
+                delta = (ts - datetime.now(UTC)).total_seconds()
                 return max(0.0, min(_MAX_DELAY, delta))
             except ValueError:
                 pass

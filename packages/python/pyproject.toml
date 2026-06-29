@@ -8,7 +8,7 @@ version = "0.8.0"
 description = "Official Python SDK for the VendorVal API"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [{ name = "Modali Consulting" }]
 keywords = ["vendorval", "vendor", "verification", "sam.gov", "tin", "compliance", "api", "sdk"]
 classifiers = [
@@ -17,17 +17,15 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
 dependencies = [
     "httpx>=0.25",
-    "typing-extensions>=4.7; python_version<'3.11'",
 ]
 
 [project.urls]
@@ -57,7 +55,7 @@ asyncio_mode = "auto"
 pythonpath = ["src"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
@@ -65,7 +63,7 @@ select = ["E", "F", "I", "N", "B", "UP", "SIM"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 strict = true
 mypy_path = "src"
 packages = ["vendorval_sdk"]
