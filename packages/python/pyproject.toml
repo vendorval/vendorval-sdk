@@ -9,7 +9,7 @@ description = "Official Python SDK for the VendorVal API"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
-authors = [{ name = "Modali Consulting" }]
+authors = [{ name = "VendorVal LLC" }]
 keywords = ["vendorval", "vendor", "verification", "sam.gov", "tin", "compliance", "api", "sdk"]
 classifiers = [
     "Development Status :: 4 - Beta",
