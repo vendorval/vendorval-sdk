@@ -28,6 +28,19 @@ describe("retry policy", () => {
     expect(d.retry).toBe(true);
     expect(d.delayMs).toBe(7000);
   });
+
+  it("honors http-date retry-after on 429", () => {
+    const now = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    try {
+      const headers = new Headers({ "retry-after": new Date(now + 3000).toUTCString() });
+      const d = decideRetryFromHeaders(0, 429, headers);
+      expect(d.retry).toBe(true);
+      expect(d.delayMs).toBe(3000);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
 
 describe("retry behavior at the client level", () => {

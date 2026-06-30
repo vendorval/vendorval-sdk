@@ -1,3 +1,5 @@
+import { parseRetryAfter } from "./errors";
+
 /**
  * Retry decisions for the VendorVal API.
  *
@@ -39,8 +41,8 @@ export function decideRetryFromHeaders(
   }
 
   if (status === 429) {
-    const retryAfter = headerSeconds(headers.get("retry-after"));
-    if (retryAfter !== null) {
+    const retryAfter = parseRetryAfter(headers);
+    if (retryAfter !== undefined) {
       return { retry: true, delayMs: Math.min(MAX_DELAY_MS, retryAfter * 1000) };
     }
     const reset = headers.get("x-ratelimit-reset");
@@ -61,13 +63,4 @@ export function decideRetryFromHeaders(
   }
 
   return { retry: true, delayMs: computeBackoffMs(attempt) };
-}
-
-function headerSeconds(raw: string | null): number | null {
-  if (!raw) return null;
-  const n = Number.parseInt(raw, 10);
-  if (Number.isFinite(n)) return n;
-  const epoch = Date.parse(raw);
-  if (Number.isFinite(epoch)) return Math.max(0, Math.ceil((epoch - Date.now()) / 1000));
-  return null;
 }
