@@ -6,15 +6,8 @@ TypedDicts for editor support without committing to strict shapes.
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Mapping
-from typing import Any, Literal, Union
-
-if sys.version_info >= (3, 11):
-    from typing import TypedDict
-else:
-    from typing_extensions import TypedDict
-
+from typing import Any, Literal, TypedDict
 
 IdentifierType = Literal[
     "uei",
@@ -96,7 +89,7 @@ class IssuerQualifiedIdentifier(TypedDict):
     issuer: str
 
 
-IssuerQualifiedIdentifierInput = Union[str, IssuerQualifiedIdentifier]
+IssuerQualifiedIdentifierInput = str | IssuerQualifiedIdentifier
 
 
 # Object-keyed identifier input accepted by `/v1/verify` (e.g. `{"uei": "..."}`).
@@ -157,13 +150,13 @@ class CountryErrorDetails(TypedDict, total=False):
 # typing — `list[dict[str, str]]` is not assignable to `list[Mapping[str, str]]`
 # even though `dict` is a `Mapping`. This single alias is the canonical type
 # used everywhere identifiers cross a public method boundary.
-VerifyIdentifiers = Union[
-    VerifyIdentifierObject,
-    Mapping[str, str],
-    list[IdentifierInput],
-    list[Mapping[str, str]],
-    list[dict[str, str]],
-]
+VerifyIdentifiers = (
+    VerifyIdentifierObject
+    | Mapping[str, str]
+    | list[IdentifierInput]
+    | list[Mapping[str, str]]
+    | list[dict[str, str]]
+)
 
 
 class AddressInput(TypedDict, total=False):
