@@ -9,7 +9,7 @@ Guidance for AI assistants (Claude Code and similar) and human contributors work
 - **Node / TypeScript** — `packages/node`, published to npm as [`vendorval-sdk`](https://www.npmjs.com/package/vendorval-sdk).
 - **Python** — `packages/python`, published to PyPI as [`vendorval-sdk`](https://pypi.org/project/vendorval-sdk/).
 
-Both wrap the [VendorVal REST API](https://docs.vendorval.com) (`https://api.vendorval.com/v1`) and expose the same surface so the two languages stay at parity. VendorVal is a vendor-verification product by Modali Consulting; `specs/openapi.json` is a snapshot of the VendorVal API's OpenAPI spec, mirrored from its upstream releases.
+Both wrap the [VendorVal REST API](https://docs.vendorval.com) (`https://api.vendorval.com/v1`) and expose the same surface so the two languages stay at parity. VendorVal is a vendor-verification product by VendorVal LLC; `specs/openapi.json` is a snapshot of the VendorVal API's OpenAPI spec, mirrored from its upstream releases.
 
 > **This repository is public.** Treat everything here as world-readable. Do not commit secrets, production or customer data, internal hostnames, internal issue/PR numbers, internal infrastructure details, or internal-only tooling. Write changelog entries and code comments for SDK consumers, not for an internal audience.
 
