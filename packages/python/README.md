@@ -6,6 +6,8 @@ Official Python SDK for the [VendorVal API](https://docs.vendorval.com).
 pip install vendorval-sdk
 ```
 
+Requires Python >=3.11. Set `VENDORVAL_API_KEY` before running these examples; identifiers below are illustrative.
+
 ## Quick start
 
 ```python
@@ -78,7 +80,7 @@ from vendorval_sdk import construct_event
 event = construct_event(raw_body, signature_header, secret)
 ```
 
-> Outbound webhook delivery is not enabled in the API yet; this helper exists so handler code is ready when delivery lands.
+Pass the original raw request body and signature header to the verifier. This helper validates incoming events; it does not configure a webhook endpoint or enable delivery. Follow the API documentation for subscription and delivery setup.
 
 ## License
 

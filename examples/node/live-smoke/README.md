@@ -1,19 +1,15 @@
-# live-smoke (Node)
+# Node live smoke example
 
-End-to-end smoke test that links the local Node SDK build (`../../../packages/node`) via the pnpm workspace and hits the real VendorVal API. Useful for verifying a pre-release before publishing to npm.
+Links the local SDK through the pnpm workspace and performs one entity lookup against the real API by default. It prints the returned record and may consume API quota. Use an authorized test key and identifier.
 
-## Run
+Requires Node >=20.6 for `--env-file` and pnpm 10. From the **repository root**:
 
 ```bash
-cp .env.example .env
-# edit .env: set VENDORVAL_API_KEY and VENDORVAL_UEI
-pnpm install               # from the repo root, links `vendorval-sdk` workspace:*
+cp examples/node/live-smoke/.env.example examples/node/live-smoke/.env
+# Set VENDORVAL_API_KEY and VENDORVAL_UEI in that file.
+pnpm install --frozen-lockfile
 pnpm --filter vendorval-sdk build
 pnpm --filter vendorval-example-live-smoke start
 ```
 
-Calls `client.entities.lookup({ identifiers: { uei } })` against `https://api.vendorval.com/v1` by default and prints the JSON entity record.
-
-Override the target with `VENDORVAL_BASE_URL` (host only, e.g. `https://api.vendorval.com`) in `.env` to hit staging or a local server.
-
-Requires Node 20.6+ for `node --env-file=.env`. On older Node, replace the `start` script with `node -r dotenv/config index.mjs` and add `dotenv` as a dep.
+`VENDORVAL_BASE_URL` overrides the default `https://api.vendorval.com`; use the host without `/v1`. The start script loads `.env` from the example directory. Keep the file untracked and avoid copying returned customer data into commits or logs shared publicly.
