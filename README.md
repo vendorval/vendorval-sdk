@@ -60,6 +60,8 @@ vendorval-sdk/
 
 ## Development
 
+Node SDK: Node >=20 and pnpm 10. Python SDK: Python >=3.11 and uv. Set `VENDORVAL_API_KEY` before making API calls; example identifiers are placeholders.
+
 ```bash
 pnpm install
 pnpm -r build              # build all Node packages
@@ -70,6 +72,8 @@ uv sync
 uv run pytest
 ```
 
+Run `node scripts/check-type-parity.mjs` from the repository root after changing the public surface. Package READMEs describe errors, configuration, and async usage.
+
 See [`RELEASING.md`](./RELEASING.md) for how to cut new releases.
 
 ## Contributing
@@ -78,7 +82,7 @@ Contributions are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for set
 
 ## Issue tracking
 
-Report bugs and feature requests via [GitHub issues](https://github.com/vendorval/vendorval-sdk/issues). Issues should be added to the [VendorVal project](https://github.com/orgs/vendorval/projects/1).
+Report bugs and feature requests via [GitHub issues](https://github.com/vendorval/vendorval-sdk/issues).
 
 ## License
 

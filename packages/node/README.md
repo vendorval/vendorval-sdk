@@ -10,6 +10,8 @@ pnpm add vendorval-sdk
 yarn add vendorval-sdk
 ```
 
+Requires Node >=20. Set `VENDORVAL_API_KEY` before running these examples; identifiers below are illustrative.
+
 ## Quick start
 
 ```ts
@@ -48,7 +50,7 @@ const client = new Vendorval({
   apiKey: "vv_live_…",
   baseUrl: "https://api.vendorval.com",
   timeout: 30_000,            // ms, default 60_000
-  maxRetries: 2,              // default 2 (network errors, 408, 409 conflict-of-no-retry-class excluded, 429, 5xx)
+  maxRetries: 2,              // default 2 (network errors, HTTP 408, 429, and 5xx; not 409)
   fetch: globalThis.fetch,    // injectable for tests / proxies
 });
 ```
@@ -61,6 +63,7 @@ All errors inherit from `VendorvalError` and expose `requestId`, `status`, `code
 
 ```ts
 import {
+  VendorvalError,
   AuthenticationError,
   RateLimitError,
   ValidationError,
@@ -97,7 +100,7 @@ Materialize with `await client.monitors.list().all()` if you want an array.
 const event = client.webhooks.constructEvent(rawBody, signatureHeader, secret);
 ```
 
-> Outbound webhook delivery is not enabled in the API yet; this helper exists so handler code is ready when delivery lands.
+Pass the original raw request body and signature header to the verifier. This helper validates incoming events; it does not configure a webhook endpoint or enable delivery. Follow the API documentation for subscription and delivery setup.
 
 ## Logging the request id
 

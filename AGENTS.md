@@ -23,6 +23,8 @@ scripts/            Spec-sync + type-parity helpers
 
 ## Working on the Node SDK
 
+Requires Node >=20 and pnpm 10; CI covers Node 20, 22, and 24.
+
 ```bash
 pnpm install
 pnpm -r build      # bundle with tsup (ESM + CJS + .d.ts)
@@ -31,6 +33,8 @@ pnpm --filter vendorval-sdk typecheck
 ```
 
 ## Working on the Python SDK
+
+Requires Python >=3.11 and uv; CI covers Python 3.11–3.14.
 
 ```bash
 cd packages/python
@@ -55,10 +59,6 @@ Never commit credentials. A local `.env` (used for live smoke tests) is gitignor
 
 Read nearby code and existing patterns before changing anything. Prefer small, reviewable diffs. Run the most relevant build/test/lint commands after changes. Explain what changed and what you did not test.
 
-## Security
-
-Never commit secrets, credentials, or customer data. Never run destructive production operations without explicit approval.
-
 ## Do not
 
 - Add dependencies without checking existing manifests first
@@ -67,6 +67,4 @@ Never commit secrets, credentials, or customer data. Never run destructive produ
 
 ## Issue tracking
 
-Bugs and features: GitHub Issues in this repo → auto-added to the [VendorVal project board](https://github.com/orgs/vendorval/projects/1) when org secret `ADD_TO_PROJECT_PAT` is set. See https://github.com/vendorval/vendorval/blob/main/docs/github-project-setup.md
-
-Product roadmap, SOPs, and compliance docs live in [`vendorval/vendorval`](https://github.com/vendorval/vendorval). Not tracked in Modali Accelerate.
+Use this repository's public GitHub issues for SDK bugs and features. Keep internal planning and private infrastructure references out of public documentation.
