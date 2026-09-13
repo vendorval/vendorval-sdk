@@ -81,7 +81,7 @@ Also: top-level `npi` is now a typed field on `LookupIdentifiers` (was already i
 + import Vendorval from "vendorval-sdk";
 ```
 
-The default export, named exports, and runtime behaviour are unchanged.
+The default export, named exports, and runtime behavior are unchanged.
 
 **New — country-aware SDK surface:**
 
@@ -89,7 +89,7 @@ The default export, named exports, and runtime behaviour are unchanged.
 - New `CountryCode`, `EntityRegion`, `CountryTier` types and a typed `SupportedCountrySummary` / `SupportedCountriesResponse` pair mirroring `/v1/meta/countries`.
 - New `MetaResource` exposing `client.meta.listSupportedCountries()` and `client.meta.getSupportedCountry(code)`.
 - `entities.lookup` / `verifications.create` accept an optional `country` parameter that is forwarded to the API.
-- New `CountryError` (subclass of `ValidationError`) wired into the response-to-error mapping for the five 422 codes: `country_required`, `country_not_supported`, `identifier_not_supported_for_country`, `check_not_supported_for_country`, `country_mismatch`. Plain 422 responses now map to `ValidationError` so non-country semantic violations inherit the same catch-all behaviour.
+- New `CountryError` (subclass of `ValidationError`) wired into the response-to-error mapping for the five 422 codes: `country_required`, `country_not_supported`, `identifier_not_supported_for_country`, `check_not_supported_for_country`, `country_mismatch`. Plain 422 responses now map to `ValidationError` so non-country semantic violations inherit the same catch-all behavior.
 
 ## 0.1.0 — Unreleased
 

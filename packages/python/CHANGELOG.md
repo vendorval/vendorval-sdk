@@ -79,7 +79,7 @@ client.entities.lookup(
 + from vendorval_sdk import Vendorval
 ```
 
-The public class names (`Vendorval`, `AsyncVendorval`, error types, `construct_event`, …) and their behaviour are unchanged.
+The public class names (`Vendorval`, `AsyncVendorval`, error types, `construct_event`, …) and their behavior are unchanged.
 
 **New — country-aware SDK surface:**
 
@@ -87,7 +87,7 @@ The public class names (`Vendorval`, `AsyncVendorval`, error types, `construct_e
 - New `CountryCode`, `EntityRegion`, `CountryTier` types and a typed `SupportedCountrySummary` / `SupportedCountriesResponse` pair mirroring `/v1/meta/countries`.
 - New `MetaResource` exposing `client.meta.list_supported_countries()` and `client.meta.get_supported_country(code)` (sync + async).
 - `entities.lookup` / `verifications.create` accept an optional `country` parameter that is forwarded to the API.
-- New `CountryError` (subclass of `ValidationError`) wired into the response-to-error mapping for the five 422 codes: `country_required`, `country_not_supported`, `identifier_not_supported_for_country`, `check_not_supported_for_country`, `country_mismatch`. Plain 422 responses now map to `ValidationError` so non-country semantic violations inherit the same catch-all behaviour.
+- New `CountryError` (subclass of `ValidationError`) wired into the response-to-error mapping for the five 422 codes: `country_required`, `country_not_supported`, `identifier_not_supported_for_country`, `check_not_supported_for_country`, `country_mismatch`. Plain 422 responses now map to `ValidationError` so non-country semantic violations inherit the same catch-all behavior.
 
 ## 0.1.0 — Unreleased
 
