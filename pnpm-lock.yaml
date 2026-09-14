@@ -12,6 +12,8 @@ overrides:
 
 importers:
 
+  .: {}
+
   examples/node/live-smoke:
     dependencies:
       vendorval-sdk:
