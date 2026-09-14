@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * Pull the latest OpenAPI spec from the vendorval-api GitHub release and
- * write it to specs/openapi.json. Used by the spec-drift workflow and
- * runnable locally.
+ * Pull the VendorVal API's OpenAPI spec from its public endpoint and write it
+ * to specs/openapi.json. Used by the spec-drift workflow and runnable locally.
  *
  *   node scripts/sync-openapi.mjs
- *   node scripts/sync-openapi.mjs --tag v1.2.3
+ *   node scripts/sync-openapi.mjs --url http://localhost:3000/v1/openapi.json
  *
- * Honors GITHUB_TOKEN if present (avoids unauthenticated rate limits).
+ * The API serves the spec unauthenticated at /v1/openapi.json, so no token
+ * is needed. (It used to come from a release asset on the private
+ * vendorval-api repo, which needed a PAT with read access to that repo's
+ * source; the public endpoint avoids holding one.)
  */
 import { writeFile, readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
@@ -15,59 +17,42 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "..", "specs", "openapi.json");
-const REPO = "vendorval/vendorval-api";
-const ASSET_NAME = "openapi.json";
+const DEFAULT_URL = "https://api.vendorval.com/v1/openapi.json";
 
 const argv = process.argv.slice(2);
-const tagIdx = argv.indexOf("--tag");
-const tag = tagIdx >= 0 ? argv[tagIdx + 1] : null;
-if (tagIdx >= 0 && (tag === undefined || tag.startsWith("--"))) {
-  console.error("--tag requires a value (e.g. --tag v1.2.3)");
+const urlIdx = argv.indexOf("--url");
+const urlArg = urlIdx >= 0 ? argv[urlIdx + 1] : null;
+if (urlIdx >= 0 && (urlArg === undefined || urlArg.startsWith("--"))) {
+  console.error("--url requires a value (e.g. --url http://localhost:3000/v1/openapi.json)");
   process.exit(1);
 }
+const url = urlArg ?? process.env.OPENAPI_URL ?? DEFAULT_URL;
 
-const headers = { Accept: "application/vnd.github+json", "User-Agent": "vendorval-sdk-sync" };
-if (process.env.GITHUB_TOKEN) {
-  headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-}
-
-async function ghJson(url) {
-  const res = await fetch(url, { headers });
+async function main() {
+  const res = await fetch(url, {
+    headers: { Accept: "application/json", "User-Agent": "vendorval-sdk-sync" },
+  });
   if (!res.ok) {
     throw new Error(`${url} → ${res.status} ${res.statusText}`);
   }
-  return res.json();
-}
 
-async function main() {
-  const url = tag
-    ? `https://api.github.com/repos/${REPO}/releases/tags/${tag}`
-    : `https://api.github.com/repos/${REPO}/releases/latest`;
-  const release = await ghJson(url);
-  const asset = (release.assets ?? []).find((a) => a.name === ASSET_NAME);
-  if (!asset) {
-    throw new Error(`Release ${release.tag_name} has no ${ASSET_NAME} asset.`);
+  const body = await res.text();
+  let spec;
+  try {
+    spec = JSON.parse(body);
+  } catch {
+    throw new Error(`${url} did not return JSON (got ${res.headers.get("content-type") ?? "no content-type"}).`);
+  }
+  // Refuse to overwrite the snapshot with something that isn't a real spec,
+  // e.g. an error envelope or an empty document from a misconfigured deploy.
+  const pathCount = spec && typeof spec.paths === "object" ? Object.keys(spec.paths).length : 0;
+  if (typeof spec?.openapi !== "string" || pathCount === 0) {
+    throw new Error(`${url} returned JSON that is not an OpenAPI document with paths.`);
   }
 
-  // Use the asset API URL (asset.url), not browser_download_url:
-  // browser_download_url 404s on private repos even with valid auth, while
-  // the API endpoint works for both public and private with `Accept:
-  // application/octet-stream`.
-  const dl = await fetch(asset.url, {
-    headers: {
-      Accept: "application/octet-stream",
-      "User-Agent": "vendorval-sdk-sync",
-      ...(process.env.GITHUB_TOKEN
-        ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-        : {}),
-    },
-  });
-  if (!dl.ok) {
-    throw new Error(`Download failed: ${dl.status} ${dl.statusText}`);
-  }
-  const fresh = await dl.text();
   // Re-stringify to normalize formatting so diffs are stable.
-  const normalized = `${JSON.stringify(JSON.parse(fresh), null, 2)}\n`;
+  const normalized = `${JSON.stringify(spec, null, 2)}\n`;
+  const label = `API ${spec.info?.version ?? "unknown version"}, ${pathCount} paths`;
 
   let prev = "";
   try {
@@ -81,12 +66,12 @@ async function main() {
   }
 
   if (prev === normalized) {
-    console.log(`No changes (release ${release.tag_name}).`);
+    console.log(`No changes (${label}).`);
     return;
   }
 
   await writeFile(OUT, normalized);
-  console.log(`Updated specs/openapi.json from release ${release.tag_name}.`);
+  console.log(`Updated specs/openapi.json from ${url} (${label}).`);
 }
 
 main().catch((err) => {

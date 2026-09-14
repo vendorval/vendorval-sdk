@@ -8,69 +8,58 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+
+concurrency:
+  group: spec-drift
+  cancel-in-progress: false
 
 jobs:
-  token-check:
-    name: Check for VENDORVAL_API_READ_TOKEN
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions: {}
-    outputs:
-      present: ${{ steps.token.outputs.present }}
-    steps:
-      - name: Check for VENDORVAL_API_READ_TOKEN
-        id: token
-        # Never sync without the token: an empty one falls back to
-        # unauthenticated requests and 404s on the private repo, which looks
-        # identical to "no release exists".
-        #
-        # A scheduled run with no token skips the sync with a warning instead
-        # of failing, so a known-missing secret doesn't turn every day red and
-        # bury real failures. A manual run still fails loudly, because whoever
-        # dispatched it wants to know.
-        env:
-          HAS_TOKEN: ${{ secrets.VENDORVAL_API_READ_TOKEN != '' }}
-        run: |
-          if [ "$HAS_TOKEN" = "true" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "present=false" >> "$GITHUB_OUTPUT"
-          msg="VENDORVAL_API_READ_TOKEN secret is not set (needs a fine-grained PAT with contents:read on vendorval/vendorval-api)"
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "::error::$msg"
-            exit 1
-          fi
-          echo "::warning::Skipping spec sync: $msg"
-          echo "Skipped: $msg" >> "$GITHUB_STEP_SUMMARY"
-
   sync:
-    needs: token-check
-    if: needs.token-check.outputs.present == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      # To dispatch the CI workflows on the sync branch (see the last step).
+      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
+
+      # The API serves its spec unauthenticated at /v1/openapi.json, so this
+      # needs no secret. The script refuses to write anything that isn't an
+      # OpenAPI document with paths, so an outage fails the run instead of
+      # opening a PR that empties the snapshot.
       - name: Sync openapi.json
-        env:
-          # Fine-grained PAT with contents:read on vendorval/vendorval-api.
-          # The default GITHUB_TOKEN is scoped to this repo and cannot see
-          # the private vendorval-api repo's releases.
-          GITHUB_TOKEN: ${{ secrets.VENDORVAL_API_READ_TOKEN }}
         run: node scripts/sync-openapi.mjs
+
       - name: Open PR if changed
+        id: pr
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "chore(specs): sync openapi.json from upstream"
           branch: chore/sync-openapi
           title: "chore(specs): sync openapi.json from upstream"
           body: |
-            Automated sync of `specs/openapi.json` from the latest upstream VendorVal API release.
+            Automated sync of `specs/openapi.json` from https://api.vendorval.com/v1/openapi.json.
 
             Review the diff to see if the SDK surface needs updating.
           labels: spec-sync,automated
+
+      # A PR opened or updated with the default GITHUB_TOKEN doesn't trigger
+      # pull_request workflows, so the required checks would never report and
+      # the PR could never merge. workflow_dispatch is the exception to that
+      # rule, and its check runs land on the same head commit the ruleset
+      # looks at.
+      - name: Run required checks on the sync branch
+        if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in ci-node.yml ci-python.yml type-parity.yml audit.yml; do
+            gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref chore/sync-openapi
+          done
+          echo "Dispatched CI for ${{ steps.pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
