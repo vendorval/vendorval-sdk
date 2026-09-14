@@ -1,0 +1,6 @@
+{
+  "name": "vendorval-sdk-workspace",
+  "private": true,
+  "description": "Workspace root for the VendorVal SDKs. Not published; exists so tooling that expects a root manifest (e.g. Dependabot) can resolve the pnpm workspace.",
+  "license": "MIT"
+}
