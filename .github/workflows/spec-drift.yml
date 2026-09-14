@@ -2,7 +2,9 @@ name: Spec drift
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily at 06:00 UTC
+    # Daily at 06:23 UTC. Off the top of the hour, when scheduled runs are
+    # most likely to be delayed or dropped.
+    - cron: "23 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -10,22 +12,50 @@ permissions:
   pull-requests: write
 
 jobs:
-  sync:
+  token-check:
+    name: Check for VENDORVAL_API_READ_TOKEN
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      present: ${{ steps.token.outputs.present }}
+    steps:
+      - name: Check for VENDORVAL_API_READ_TOKEN
+        id: token
+        # Never sync without the token: an empty one falls back to
+        # unauthenticated requests and 404s on the private repo, which looks
+        # identical to "no release exists".
+        #
+        # A scheduled run with no token skips the sync with a warning instead
+        # of failing, so a known-missing secret doesn't turn every day red and
+        # bury real failures. A manual run still fails loudly, because whoever
+        # dispatched it wants to know.
+        env:
+          HAS_TOKEN: ${{ secrets.VENDORVAL_API_READ_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" = "true" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          msg="VENDORVAL_API_READ_TOKEN secret is not set (needs a fine-grained PAT with contents:read on vendorval/vendorval-api)"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "::error::$msg"
+            exit 1
+          fi
+          echo "::warning::Skipping spec sync: $msg"
+          echo "Skipped: $msg" >> "$GITHUB_STEP_SUMMARY"
+
+  sync:
+    needs: token-check
+    if: needs.token-check.outputs.present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Require VENDORVAL_API_READ_TOKEN
-        # Fail loud if the secret is missing — an empty token would fall
-        # back to unauthenticated requests and 404 on the private repo,
-        # which looks identical to "no release exists".
-        run: |
-          if [ -z "${{ secrets.VENDORVAL_API_READ_TOKEN }}" ]; then
-            echo "::error::VENDORVAL_API_READ_TOKEN secret is not set (needs a fine-grained PAT with contents:read on vendorval/vendorval-api)"
-            exit 1
-          fi
       - name: Sync openapi.json
         env:
           # Fine-grained PAT with contents:read on vendorval/vendorval-api.
