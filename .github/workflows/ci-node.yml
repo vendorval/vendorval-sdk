@@ -35,5 +35,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter vendorval-sdk typecheck
+      # Lint output doesn't depend on the Node version, so run it once.
+      - if: matrix.node-version == '24'
+        run: pnpm --filter vendorval-sdk lint
       - run: pnpm --filter vendorval-sdk test
       - run: pnpm --filter vendorval-sdk build

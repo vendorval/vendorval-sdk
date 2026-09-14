@@ -30,6 +30,7 @@ pnpm install
 pnpm -r build      # bundle with tsup (ESM + CJS + .d.ts)
 pnpm -r test       # vitest
 pnpm --filter vendorval-sdk typecheck
+pnpm --filter vendorval-sdk lint   # eslint
 ```
 
 ## Working on the Python SDK
