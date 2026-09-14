@@ -2,18 +2,26 @@ name: Secret Scan (gitleaks)
 
 # gitleaks catches custom secret shapes (e.g. `vv_live_*` API keys and
 # DATABASE_URL connection strings) that GitHub's native push-protection
-# detectors miss. Runs on every push and pull request.
+# detectors miss. Runs on every pull request and every push to main.
 
+# Push is limited to main: a PR branch is already scanned by the
+# pull_request event, and scanning its pushes too ran every scan twice.
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

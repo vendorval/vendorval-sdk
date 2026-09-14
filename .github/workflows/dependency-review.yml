@@ -3,8 +3,19 @@ name: Dependency Review
 # Scans dependency manifest changes on every PR and fails when a newly
 # introduced dependency carries a known high-severity (or worse) advisory.
 
+# Only runs when a manifest, lockfile or workflow changes: with nothing to
+# diff the action has no work to do, but it still costs a runner per PR push.
+# Safe to filter because this is not a required status check.
 on:
   pull_request:
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/pnpm-lock.yaml'
+      - '**/pyproject.toml'
+      - '**/requirements*.txt'
+      - '**/uv.lock'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
