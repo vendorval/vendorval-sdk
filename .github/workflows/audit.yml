@@ -27,8 +27,6 @@ jobs:
           persist-credentials: false
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       # Informational gate (not a required check): surfaces HIGH+ advisories in
       # production dependencies. Reads pnpm-lock.yaml — no install needed.

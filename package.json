@@ -1,0 +1,6 @@
+{
+  "name": "vendorval-sdk-workspace",
+  "private": true,
+  "description": "pnpm workspace root for the Node SDK and its examples. Not published.",
+  "packageManager": "pnpm@10.34.5"
+}
