@@ -11,6 +11,7 @@ pnpm install
 pnpm -r build
 pnpm -r test
 pnpm --filter vendorval-sdk typecheck
+pnpm --filter vendorval-sdk lint
 ```
 
 **Python (`packages/python`):**

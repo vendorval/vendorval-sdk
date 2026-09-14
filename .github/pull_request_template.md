@@ -14,6 +14,7 @@
 
 <!-- Node (`packages/node`) -->
 - [ ] `pnpm --filter vendorval-sdk typecheck` passes
+- [ ] `pnpm --filter vendorval-sdk lint` passes
 - [ ] `pnpm --filter vendorval-sdk test` (Vitest) passes
 - [ ] `pnpm --filter vendorval-sdk build` passes
 <!-- Python (`packages/python`) -->
