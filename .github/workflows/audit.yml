@@ -66,8 +66,7 @@ jobs:
     # Keeps one `ci-failure` issue open while the scheduled run is red and
     # closes it on the next green run, instead of a failure email per run.
     # Scheduled and manual runs on main only: a failed PR or push run already
-    # shows on the PR or commit, and spec-drift dispatches this workflow on its
-    # sync branch. always() so a failed job still reaches this one.
+    # shows on the PR or commit. always() so a failed job still reaches this.
     if: >-
       always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
