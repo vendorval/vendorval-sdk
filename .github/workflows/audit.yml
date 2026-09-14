@@ -59,3 +59,31 @@ jobs:
         run: |
           uv sync
           uv run --with pip-audit pip-audit
+
+  notify:
+    name: Notify on state change
+    needs: [node-audit, python-audit]
+    # Keeps one `ci-failure` issue open while the scheduled run is red and
+    # closes it on the next green run, instead of a failure email per run.
+    # Scheduled and manual runs on main only: a failed PR or push run already
+    # shows on the PR or commit. always() so a failed job still reaches this.
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # check out the local composite action
+      actions: read # read the failed job's step results
+      checks: read # read job annotations (billing block, timeout)
+      issues: write # open, update or close the ci-failure issue
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions/failure-notify
+          persist-credentials: false
+
+      - uses: ./.github/actions/failure-notify
+        with:
+          needs: ${{ toJSON(needs) }}
+          title: Scheduled dependency audit failing

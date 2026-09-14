@@ -1,0 +1,115 @@
+# Source of truth: vendorval/vendorval-app, generalised from
+# .github/actions/smoke-notify. This directory is copied verbatim into
+# vendorval-api, -data, -platform, -com, -mcp and -sdk (a private action
+# can't be shared reliably across private repos). Change every copy together.
+name: Failure notify
+description: >-
+  Turns a scheduled or monitoring workflow's result into a state change a
+  human sees, instead of a failure email per run. Keeps ONE open GitHub issue
+  (label `ci-failure` by default) per workflow: opened on the first failure,
+  its body refreshed on repeat failures (no comment spam), and closed with a
+  "Recovered in <run>" comment on the next green run. Optionally posts to
+  Slack, but only when an issue is opened or closed.
+
+  Call it from a separate job that `needs:` the watched job(s) and runs with
+  `if: always()`, passing either `needs: toJSON(needs)` or a single `result`.
+  That job needs `contents: read` (to check out this action), `actions: read`
+  (step results), `checks: read` (job annotations such as billing/timeout
+  messages) and `issues: write`.
+
+  Local dry run (reads the real API, prints the writes instead of doing them):
+    DRY_RUN=1 RESULT=failure TITLE='Link check failing' \
+      WORKFLOW_NAME='Link check' \
+      WORKFLOW_REF='vendorval/vendorval-com/.github/workflows/link-check.yml@refs/heads/main' \
+      GITHUB_REPOSITORY=vendorval/vendorval-com GITHUB_RUN_ID=<id> GITHUB_RUN_ATTEMPT=1 \
+      GITHUB_OUTPUT=/dev/stdout GH_TOKEN=$(gh auth token) \
+      bash .github/actions/failure-notify/notify.sh
+
+inputs:
+  needs:
+    description: >-
+      `toJSON(needs)` from the calling job. The overall result is failure if
+      any needed job failed, else cancelled if any was cancelled, else success
+      if any succeeded, else skipped. Ignored when `result` is set.
+    required: false
+    default: ''
+  result:
+    description: A single job result (success, failure, cancelled or skipped). Overrides `needs`.
+    required: false
+    default: ''
+  title:
+    description: Issue title. Defaults to "<workflow name> failing".
+    required: false
+    default: ''
+  label:
+    description: Label applied to the tracking issue (created if missing).
+    required: false
+    default: ci-failure
+  job-name:
+    description: Only inspect this job when working out where the run failed. Empty means every failed job in the run.
+    required: false
+    default: ''
+  test-step:
+    description: Name of the step that does the actual check. A failure in any other step is reported as setup/infrastructure. Empty means no such distinction.
+    required: false
+    default: ''
+  slack-webhook-url:
+    description: Optional Slack incoming webhook. Empty means no Slack post.
+    required: false
+    default: ''
+  github-token:
+    description: Token with issues:write, actions:read and checks:read.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  state-change:
+    description: opened, updated, closed or none.
+    value: ${{ steps.notify.outputs.state-change }}
+  issue-url:
+    description: URL of the tracking issue that was touched, if any.
+    value: ${{ steps.notify.outputs.issue-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Open, update or close the tracking issue
+      id: notify
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        NEEDS_JSON: ${{ inputs.needs }}
+        RESULT: ${{ inputs.result }}
+        TITLE: ${{ inputs.title }}
+        LABEL: ${{ inputs.label }}
+        JOB_NAME: ${{ inputs.job-name }}
+        TEST_STEP: ${{ inputs.test-step }}
+        WORKFLOW_NAME: ${{ github.workflow }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      run: bash "$GITHUB_ACTION_PATH/notify.sh"
+
+    - name: Notify Slack on state change
+      # Only on open/close, and only when a webhook is configured. No secret,
+      # no post, no error.
+      if: >-
+        inputs.slack-webhook-url != '' &&
+        (steps.notify.outputs.state-change == 'opened' || steps.notify.outputs.state-change == 'closed')
+      shell: bash
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
+        STATE: ${{ steps.notify.outputs.state-change }}
+        ISSUE_URL: ${{ steps.notify.outputs.issue-url }}
+        HINT: ${{ steps.notify.outputs.hint }}
+        WORKFLOW_NAME: ${{ github.workflow }}
+        REPO: ${{ github.repository }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        if [ "$STATE" = opened ]; then
+          text=":rotating_light: *${WORKFLOW_NAME}* (${REPO}) is failing. ${HINT}
+        Run: <${RUN_URL}|logs> · Issue: <${ISSUE_URL}|tracking issue>"
+        else
+          text=":white_check_mark: *${WORKFLOW_NAME}* (${REPO}) recovered. Run: <${RUN_URL}|logs> · Issue: <${ISSUE_URL}|closed>"
+        fi
+        jq -n --arg text "$text" '{text: $text}' \
+          | curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$SLACK_WEBHOOK_URL" >/dev/null \
+          || echo "::warning::Slack post failed; the GitHub issue is still the source of truth."

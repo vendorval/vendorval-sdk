@@ -80,3 +80,31 @@ jobs:
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "CI for this sync PR is waiting for approval and the workflow couldn't approve it automatically. A maintainer needs to click **Approve workflows to run** on this PR."
             echo "::warning::Could not approve $failed CI run(s) on #$PR; left a comment asking a maintainer to approve."
           fi
+
+  notify:
+    name: Notify on state change
+    needs: [sync]
+    # Keeps one `ci-failure` issue open while the sync is red and closes it on
+    # the next green run, instead of a failure email per run. Main only, so a
+    # dispatch on another branch can't open or close the issue. always() so a
+    # failed sync still reaches this job.
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # check out the local composite action
+      actions: read # read the failed job's step results
+      checks: read # read job annotations (billing block, timeout)
+      issues: write # open, update or close the ci-failure issue
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions/failure-notify
+          persist-credentials: false
+
+      - uses: ./.github/actions/failure-notify
+        with:
+          needs: ${{ toJSON(needs) }}
+          title: Spec drift sync failing
