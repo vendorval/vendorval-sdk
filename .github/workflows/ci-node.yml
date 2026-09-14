@@ -10,8 +10,6 @@ on:
       - "pnpm-workspace.yaml"
       - "pnpm-lock.yaml"
   pull_request:
-  # Lets spec-drift.yml run this on its sync branch; see the note there.
-  workflow_dispatch:
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
 concurrency:

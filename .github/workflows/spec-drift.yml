@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      # To dispatch the CI workflows on the sync branch (see the last step).
+      # To approve the sync PR's CI runs (see the last step).
       actions: write
     steps:
       - uses: actions/checkout@v7
@@ -49,17 +49,34 @@ jobs:
             Review the diff to see if the SDK surface needs updating.
           labels: spec-sync,automated
 
-      # A PR opened or updated with the default GITHUB_TOKEN doesn't trigger
-      # pull_request workflows, so the required checks would never report and
-      # the PR could never merge. workflow_dispatch is the exception to that
-      # rule, and its check runs land on the same head commit the ruleset
-      # looks at.
-      - name: Run required checks on the sync branch
+      # CI on a PR opened by github-actions[bot] doesn't start on its own:
+      # GitHub creates the pull_request runs but holds them at "approval
+      # required", and the required checks stay "Expected" until someone
+      # approves. (Dispatching the workflows separately doesn't help; the PR
+      # only counts its own pull_request runs.) Approve them here. If this
+      # token isn't allowed to, say so on the PR instead of failing quietly.
+      - name: Approve CI runs on the sync PR
         if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.pr.outputs.pull-request-head-sha }}
+          PR: ${{ steps.pr.outputs.pull-request-number }}
         run: |
-          for wf in ci-node.yml ci-python.yml type-parity.yml audit.yml; do
-            gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref chore/sync-openapi
+          approved=0 failed=0
+          # Runs are created asynchronously after the PR event; give them two minutes.
+          for _ in $(seq 1 12); do
+            sleep 10
+            for id in $(gh run list --repo "$GITHUB_REPOSITORY" --commit "$SHA" --event pull_request \
+                          --json databaseId,conclusion --jq '.[] | select(.conclusion == "action_required") | .databaseId'); do
+              if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null; then
+                approved=$((approved + 1))
+              else
+                failed=$((failed + 1))
+              fi
+            done
           done
-          echo "Dispatched CI for ${{ steps.pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Approved $approved CI run(s) for #$PR; $failed approval(s) failed." | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$failed" -gt 0 ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "CI for this sync PR is waiting for approval and the workflow couldn't approve it automatically. A maintainer needs to click **Approve workflows to run** on this PR."
+            echo "::warning::Could not approve $failed CI run(s) on #$PR; left a comment asking a maintainer to approve."
+          fi
