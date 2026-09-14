@@ -4,10 +4,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/packages/node"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
     groups:
-      # Collapse ALL routine minor/patch churn into a single PR per week.
+      # Collapse ALL routine minor/patch churn into a single PR per month.
       minor-and-patch:
         patterns:
           - "*"
@@ -41,7 +41,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/packages/python"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
@@ -71,11 +71,11 @@ updates:
         update-types: ["version-update:semver-major"]
 
   # Keep GitHub Actions pinned versions current — collapse ALL action bumps
-  # (including majors) into one PR per week.
+  # (including majors) into one PR per month.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
     groups:
       github-actions:
