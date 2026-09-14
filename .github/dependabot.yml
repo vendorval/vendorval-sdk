@@ -1,8 +1,10 @@
 version: 2
 updates:
-  # Published Node.js / TypeScript SDK package (npm).
+  # Published Node.js / TypeScript SDK package (npm). This has to point at the
+  # repo root: packages/node and examples/node/* are one pnpm workspace with a
+  # single root lockfile, and Dependabot refuses to update from a subdirectory.
   - package-ecosystem: "npm"
-    directory: "/packages/node"
+    directory: "/"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
