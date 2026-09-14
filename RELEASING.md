@@ -44,4 +44,4 @@ Both SDKs send the header `X-VendorVal-API-Version: <ISO date>`. When the API sh
 
 ## Spec drift
 
-The `spec-drift.yml` workflow runs nightly: it pulls the latest `openapi.json` from the most recent upstream VendorVal API release and opens a PR if the snapshot in `specs/openapi.json` has changed.
+The `spec-drift.yml` workflow runs nightly: it pulls `openapi.json` from the API's public endpoint (`https://api.vendorval.com/v1/openapi.json`, no token needed) and opens a PR if the snapshot in `specs/openapi.json` has changed. The spec reflects what is deployed, so no API release tag is required.

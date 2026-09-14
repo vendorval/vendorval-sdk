@@ -8,6 +8,8 @@ on:
       - "specs/**"
       - ".github/workflows/ci-python.yml"
   pull_request:
+  # Lets spec-drift.yml run this on its sync branch; see the note there.
+  workflow_dispatch:
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
 concurrency:
