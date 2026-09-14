@@ -89,7 +89,7 @@ const ALLOWED_TS_ONLY = new Set([
 ])
 
 const ALLOWED_PY_ONLY = new Set([
-  // Python-only helpers that don't have a TS analogue
+  // Python-only helpers that don't have a TS analog
   'VerifyIdentifierObject', // python-specific helper for the verify request shape
   'IssuerQualifiedIdentifier', // python-specific helper for issuer-qualified identifier shape
   'CountryErrorDetails', // python-specific error-details TypedDict
