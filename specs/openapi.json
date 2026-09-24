@@ -1174,6 +1174,96 @@
         }
       }
     },
+    "/v1/bank-accounts/validate": {
+      "post": {
+        "summary": "Structurally validate vendor bank details",
+        "tags": [
+          "Bank accounts"
+        ],
+        "description": "Stateless and free to call. Validates an IBAN (ISO 13616 check digits and per-country length), a BIC (ISO 9362), or a US ABA routing number (weighted checksum and assigned Federal Reserve prefix range), and returns one finding per rule plus masked display forms.\n\nA `valid: true` means the details are well-formed and internally consistent. It does NOT mean the account exists, and it does NOT mean the account belongs to the vendor named. Confirming those requires directory lookup and ownership verification respectively, which are separate and not part of this endpoint.\n\nNothing is stored. The account number, when supplied, is used to produce a masked display form and is never persisted or logged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scheme": {
+                        "type": "string",
+                        "enum": [
+                          "iban"
+                        ]
+                      },
+                      "iban": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "description": "IBAN. Spaces and dashes are accepted and normalized away; case is ignored."
+                      },
+                      "bic": {
+                        "description": "Optional BIC/SWIFT code. When supplied it is validated and its country is checked against the IBAN, because a cross-border disagreement is a redirected-payment signal.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "account_holder_name": {
+                        "description": "Optional. Not validated in this tier — name-to-account matching requires ownership verification (Tier 3). Accepted so callers can send one payload shape throughout.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "scheme",
+                      "iban"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scheme": {
+                        "type": "string",
+                        "enum": [
+                          "us_ach"
+                        ]
+                      },
+                      "routing_number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "description": "9-digit US ABA routing number. Dashes and spaces are accepted."
+                      },
+                      "account_number": {
+                        "description": "Optional. US account numbers carry no checksum, so there is nothing to verify structurally beyond length; it is accepted only so the response can return a masked display form. It is never stored or logged.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "account_holder_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "scheme",
+                      "routing_number"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/v1/verifications": {
       "post": {
         "summary": "Create a verification for an existing entity",

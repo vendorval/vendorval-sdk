@@ -48,6 +48,14 @@ const ALLOWED_TS_ONLY = new Set([
   'EntityType',
   'LookupMode',
   'SamRefreshMode',
+  // Present in the Python SDK as type ALIASES rather than TypedDict classes
+  // (`LookupStatus`/`RefreshStatus` as Literal unions, `BankValidateRequest`
+  // as a union of the two request TypedDicts). extractPyTypes only matches
+  // `class X(...)`, so it cannot see them — which is why every other union
+  // alias above is listed here too.
+  'LookupStatus',
+  'RefreshStatus',
+  'BankValidateRequest',
   'EntityRegion',
   'CountryTier',
   'SourceRegistration', // alias for Record<string, unknown>; Python uses dict

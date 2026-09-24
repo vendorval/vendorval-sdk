@@ -414,3 +414,119 @@ class CertificationsListResponse(TypedDict):
     has_more: bool
     limit: int
     offset: int
+
+
+# ─── Bank account validation ────────────────────────────────────────────────
+
+BankScheme = Literal["iban", "us_ach"]
+
+
+class BankValidateIbanRequest(TypedDict, total=False):
+    """IBAN branch of the validate request. ``scheme`` and ``iban`` required."""
+
+    scheme: Literal["iban"]
+    # Spaces, dashes and lowercase are accepted and normalized server-side.
+    iban: str
+    # Optional. Validated, and its country compared against the IBAN's.
+    bic: str
+    # Optional and NOT validated at this tier. Matching a name to an account
+    # requires ownership verification, which this endpoint does not do.
+    account_holder_name: str
+
+
+class BankValidateUsAchRequest(TypedDict, total=False):
+    """US ACH branch. ``scheme`` and ``routing_number`` required."""
+
+    scheme: Literal["us_ach"]
+    # 9-digit ABA number. Dashes and spaces accepted.
+    routing_number: str
+    # Optional. US account numbers carry no checksum, so nothing structural can
+    # be verified — supplied only so the response can return a masked form. It
+    # is never stored or logged.
+    account_number: str
+    account_holder_name: str
+
+
+# The two schemes share nothing, so the request is a union rather than a bag of
+# optional fields. The server rejects an empty object and any cross-scheme mix.
+BankValidateRequest = BankValidateIbanRequest | BankValidateUsAchRequest
+
+
+class BankValidationFinding(TypedDict, total=False):
+    # `iban` | `bic` | `routing_number` | `iban_bic_agreement`
+    field: str
+    valid: bool
+    # `ok` when the rule passed; otherwise the specific failure code.
+    code: str
+    # Safe to show a user. Never contains the value that was sent.
+    message: str
+
+
+class BankValidateDisplay(TypedDict, total=False):
+    iban: str
+    account_number: str
+
+
+class BankValidateCountries(TypedDict, total=False):
+    iban: str
+    bic: str
+
+
+class BankValidateResponse(TypedDict, total=False):
+    """Result of a structural validation.
+
+    ``valid`` means the details are well-formed and internally consistent, and
+    NOTHING more. It is not evidence that the account exists, that it is open,
+    or that it belongs to the vendor named — confirming those is account
+    ownership verification, which this endpoint does not perform.
+
+    ``disclaimer`` restates that in the payload. Surface it; do not swallow it.
+    """
+
+    valid: bool
+    scheme: BankScheme
+    # One entry per rule that ran. Rules are skipped, not piled up.
+    findings: list[BankValidationFinding]
+    # Masked display forms. Safe to store and render; the input is not.
+    display: BankValidateDisplay
+    # Countries derived from the input. Empty for `us_ach`.
+    countries: BankValidateCountries
+    disclaimer: str
+
+
+# Richer outcome field on a lookup response. `match` is kept for backward
+# compatibility; branch on `status` in new code. `pending_async` means a live
+# fetch is still running, so `match` reads "not_found" and `entity` is None
+# while the answer is still on its way — it is NOT a miss.
+LookupStatus = Literal[
+    "cache_hit",
+    "sync_pulled",
+    "pending_async",
+    "not_found",
+]
+
+# Outcome of the SAM.gov refresh path on a lookup. `cache_fallback` is the one
+# worth handling: an upstream call failed and stored data was served instead,
+# with `stale` true and a `warning` explaining why.
+RefreshStatus = Literal[
+    "cache_hit",
+    "sam_hydrated",
+    "sam_refreshed",
+    "sam_searched",
+    "sam_not_found",
+    "cache_fallback",
+    "not_attempted",
+]
+
+
+class LookupHotPull(TypedDict, total=False):
+    """Present on a lookup whose live fetch is pending or was attempted.
+
+    On ``status == "pending_async"`` the fetch is still running and
+    ``poll_url`` says where to re-check. On a terminal ``not_found`` a
+    ``reason`` means the authoritative source was asked and had no record.
+    """
+
+    correlation_id: str
+    poll_url: str
+    reason: str

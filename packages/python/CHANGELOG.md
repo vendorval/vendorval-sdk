@@ -1,5 +1,40 @@
 # vendorval-sdk (Python)
 
+## 0.9.0
+
+### Added
+
+- **`bank_accounts.validate_iban()` / `validate_us_ach()`** — structural validation of vendor payment details. Checks an IBAN's check digits and country layout across all 89 countries in the ISO 13616 registry, a BIC's structure, and a US ABA routing number's checksum and assigned Federal Reserve range. Also reports when an IBAN and BIC name different countries, which both being individually valid does not rule out.
+
+  The endpoint is free and stateless. Nothing is stored, and the account number is never persisted or logged.
+
+  **`valid: true` means the details are well-formed and internally consistent, and nothing more.** It is not evidence that the account exists, that it is open, or that it belongs to the vendor named. Confirming those is account ownership verification, which this endpoint does not perform. Every response carries a `disclaimer` restating that — surface it rather than swallowing it.
+
+  ```python
+  res = client.bank_accounts.validate_iban(
+      iban="DE89 3704 0044 0532 0130 00", bic="DEUTDEFF"
+  )
+  for f in res["findings"]:
+      if not f["valid"]:
+          print(f["field"], f["code"], f["message"])
+  ```
+
+  A structurally invalid account returns HTTP 200 with `valid: false`. A thrown error means the request itself was malformed.
+
+  New types: `BankValidateRequest`, `BankValidateIbanRequest`, `BankValidateUsAchRequest`, `BankValidateResponse`, `BankValidationFinding`.
+
+- **`status` and `hot_pull` on the lookup response** — the richer outcome field on a lookup. `match` is unchanged and still supported; `status` is what new code should branch on. Values are `cache_hit`, `sync_pulled`, `pending_async` and `not_found`.
+
+  `pending_async` is the one to handle deliberately: it means a live fetch is still running, so `match` reads `not_found` and `entity` is `null` while the answer is still on its way. It is **not** a miss. Poll `hot_pull.poll_url`.
+
+  Both fields are optional and appear only where live pulls are enabled, so treat a missing `status` as "fall back to `match`". New types: `LookupStatus`, `LookupHotPull`.
+
+### Changed (breaking, type-level)
+
+- **`LookupRefresh` corrected.** It previously declared `from_cache`, `age_seconds` and `refreshed_at`. The API does not return those fields, so any code reading them was reading `undefined` at runtime. They are replaced by the seven fields the API actually sends: `policy`, `attempted`, `status`, `stale`, `cached_retrieved_at`, `retrieved_at` and `warning`, with `status` typed as the new `RefreshStatus` union.
+
+  This breaks type checking for code that referenced the old keys, which is the point — that code was already reading nothing. `refresh.status` is worth handling: `cache_fallback` means an upstream call failed and stored data was served instead, with `stale: true` and a `warning` explaining why.
+
 ## 0.8.0 — 2026-06-19
 
 **Type-only release** — adds awarding-authority scope filtering on `client.certifications`.

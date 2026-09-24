@@ -1,4 +1,5 @@
 import { AddressesResource } from "./resources/addresses.js";
+import { BankAccountsResource } from "./resources/bank-accounts.js";
 import { CertificationsResource } from "./resources/certifications.js";
 import { EntitiesResource } from "./resources/entities.js";
 import { JobsResource } from "./resources/jobs.js";
@@ -24,6 +25,7 @@ export class Vendorval {
   readonly usage: UsageResource;
   readonly jobs: JobsResource;
   readonly addresses: AddressesResource;
+  readonly bankAccounts: BankAccountsResource;
   readonly webhooks = webhooksModule;
 
   /** Resolved options. Useful for advanced consumers. */
@@ -40,5 +42,6 @@ export class Vendorval {
     this.usage = new UsageResource(this.options);
     this.jobs = new JobsResource(this.options);
     this.addresses = new AddressesResource(this.options);
+    this.bankAccounts = new BankAccountsResource(this.options);
   }
 }

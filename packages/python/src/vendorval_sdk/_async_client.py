@@ -10,6 +10,7 @@ from ._request import resolve_config
 from ._version import API_VERSION, VERSION
 from ._webhooks import construct_event
 from .resources._addresses import AsyncAddressesResource
+from .resources._bank_accounts import AsyncBankAccountsResource
 from .resources._certifications import AsyncCertificationsResource
 from .resources._entities import AsyncEntitiesResource
 from .resources._meta import AsyncMetaResource
@@ -62,6 +63,7 @@ class AsyncVendorval:
         self.usage = AsyncUsageResource(self._cfg, self._http)
         self.jobs = AsyncJobsResource(self._cfg, self._http)
         self.addresses = AsyncAddressesResource(self._cfg, self._http)
+        self.bank_accounts = AsyncBankAccountsResource(self._cfg, self._http)
         self.webhooks = _Webhooks()
 
     async def aclose(self) -> None:
