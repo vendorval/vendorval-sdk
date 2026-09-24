@@ -5,6 +5,43 @@ import type {
 } from "../types/api.js";
 
 /**
+ * Drop optional fields that are present but empty.
+ *
+ * The API requires a non-empty value for `bic`, `account_number` and
+ * `account_holder_name`, and rejects the ENTIRE request when one arrives as
+ * `""` — so a caller wiring a form field straight through would get a
+ * validation error for a field they left blank. Required fields are never
+ * touched: an empty `iban` still reaches the API and still fails, which is
+ * correct, because the caller genuinely did not supply it.
+ */
+function stripEmptyOptionals(request: BankValidateRequest): BankValidateRequest {
+  const keep = (value: string | undefined): boolean =>
+    typeof value === "string" && value.trim() !== "";
+
+  // Rebuilt per branch rather than looped over keys. A generic key loop needs a
+  // cast back to the union, which TypeScript rightly refuses — and the explicit
+  // form also makes it obvious which fields each scheme treats as optional.
+  if (request.scheme === "iban") {
+    return {
+      scheme: "iban",
+      iban: request.iban,
+      ...(keep(request.bic) ? { bic: request.bic } : {}),
+      ...(keep(request.account_holder_name)
+        ? { account_holder_name: request.account_holder_name }
+        : {}),
+    };
+  }
+  return {
+    scheme: "us_ach",
+    routing_number: request.routing_number,
+    ...(keep(request.account_number) ? { account_number: request.account_number } : {}),
+    ...(keep(request.account_holder_name)
+      ? { account_holder_name: request.account_holder_name }
+      : {}),
+  };
+}
+
+/**
  * Bank account validation.
  *
  * Structural checks on vendor payment details: an IBAN's check digits and
@@ -57,7 +94,7 @@ export class BankAccountsResource {
     const res = await performRequest<BankValidateResponse>(this.client, {
       method: "POST",
       path: "/v1/bank-accounts/validate",
-      body: request,
+      body: stripEmptyOptionals(request),
     });
     return { ...res.data, _requestId: res.requestId };
   }

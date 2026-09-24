@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Vendorval } from "../src/index.js";
+import { ValidationError, Vendorval } from "../src/index.js";
 import type { BankValidateResponse } from "../src/index.js";
 
 /**
@@ -97,6 +97,42 @@ describe("bankAccounts.validate — request", () => {
       iban: "DE89370400440532013000",
       bic: "DEUTDEFF",
     });
+  });
+
+  it("omits optional fields that are present but empty", async () => {
+    // Regression pin for the asymmetry CodeRabbit caught: Node forwarded the
+    // request unchanged, so bic: "" was sent and the API rejected the WHOLE
+    // request for a field the caller had simply left blank. Python already
+    // stripped these.
+    stubFetch(okResponse());
+    await client().bankAccounts.validate({
+      scheme: "iban",
+      iban: "DE89370400440532013000",
+      bic: "",
+      account_holder_name: "   ",
+    });
+    const body = sentBody();
+    expect(body).toEqual({ scheme: "iban", iban: "DE89370400440532013000" });
+    expect(Object.keys(body)).not.toContain("bic");
+    expect(Object.keys(body)).not.toContain("account_holder_name");
+  });
+
+  it("omits an empty us_ach account number", async () => {
+    stubFetch(okResponse({ scheme: "us_ach", display: {}, countries: {} }));
+    await client().bankAccounts.validate({
+      scheme: "us_ach",
+      routing_number: "021000021",
+      account_number: "",
+    });
+    expect(sentBody()).toEqual({ scheme: "us_ach", routing_number: "021000021" });
+  });
+
+  it("does NOT strip a required field, even when empty", async () => {
+    // An empty `iban` must still reach the API and still fail there. Silently
+    // dropping it would turn a caller mistake into a confusing schema error.
+    stubFetch(okResponse());
+    await client().bankAccounts.validate({ scheme: "iban", iban: "" });
+    expect(sentBody()).toEqual({ scheme: "iban", iban: "" });
   });
 
   it("sends the us_ach body without any IBAN field", async () => {
@@ -196,9 +232,11 @@ describe("bankAccounts.validate — response", () => {
 
   it("throws when the REQUEST is rejected", async () => {
     stubFetch({ error: { code: "validation_error", message: "scheme is required" } }, 422);
+    // The specific class, not just "something threw" — a bare toThrow() would
+    // also pass on a request-construction or parse error.
     await expect(
       client().bankAccounts.validate({ scheme: "iban", iban: "" }),
-    ).rejects.toThrow();
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });
 

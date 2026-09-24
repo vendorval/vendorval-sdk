@@ -209,16 +209,6 @@ export interface BankValidationFinding {
   message: string;
 }
 
-/**
- * Result of a structural validation.
- *
- * `valid` means the details are well-formed and internally consistent, and
- * NOTHING more. It is not evidence that the account exists, that it is open,
- * or that it belongs to the vendor named — confirming those is account
- * ownership verification, which this endpoint does not perform.
- *
- * `disclaimer` restates that in the payload. Surface it; do not swallow it.
- */
 /** Masked display forms. Safe to store and render; the input is not. */
 export interface BankValidateDisplay {
   iban?: string;
@@ -231,6 +221,16 @@ export interface BankValidateCountries {
   bic?: string;
 }
 
+/**
+ * Result of a structural validation.
+ *
+ * `valid` means the details are well-formed and internally consistent, and
+ * NOTHING more. It is not evidence that the account exists, that it is open,
+ * or that it belongs to the vendor named — confirming those is account
+ * ownership verification, which this endpoint does not perform.
+ *
+ * `disclaimer` restates that in the payload. Surface it; do not swallow it.
+ */
 export interface BankValidateResponse {
   valid: boolean;
   scheme: "iban" | "us_ach";
