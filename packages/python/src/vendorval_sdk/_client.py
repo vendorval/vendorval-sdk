@@ -10,6 +10,7 @@ from ._request import resolve_config
 from ._version import API_VERSION, VERSION
 from ._webhooks import construct_event
 from .resources._addresses import AddressesResource
+from .resources._bank_accounts import BankAccountsResource
 from .resources._certifications import CertificationsResource
 from .resources._entities import EntitiesResource
 from .resources._meta import MetaResource
@@ -65,6 +66,7 @@ class Vendorval:
         self.usage = UsageResource(self._cfg, self._http)
         self.jobs = JobsResource(self._cfg, self._http)
         self.addresses = AddressesResource(self._cfg, self._http)
+        self.bank_accounts = BankAccountsResource(self._cfg, self._http)
         self.webhooks = _Webhooks()
 
     def close(self) -> None:
