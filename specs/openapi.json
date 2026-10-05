@@ -30,6 +30,21 @@
         }
       }
     },
+    "/v1/health/ready": {
+      "get": {
+        "summary": "Readiness probe (database round-trip)",
+        "tags": [
+          "Health"
+        ],
+        "description": "Unauthenticated. Performs a bounded database round-trip and returns 503 when the database is unreachable. Point frequent uptime checks here rather than at /v1/health, which only reports process liveness.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "summary": "Liveness probe (uptime check alias)",
