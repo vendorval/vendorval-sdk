@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Source of truth: vendorval/vendorval-app (generalised from smoke-notify).
-# Copied verbatim into the other VendorVal repos; change every copy together.
+# Shared failure-notification script. Other VendorVal repositories carry an
+# identical copy; make changes here in step with them.
 #
 # Keeps one tracking issue per workflow in sync with the latest run. See
 # action.yml for inputs and a local dry-run example.

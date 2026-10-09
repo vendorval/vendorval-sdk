@@ -49,7 +49,7 @@ const DEFAULT_BASE_URL = "https://api.vendorval.com";
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_MAX_RETRIES = 2;
 const USER_AGENT = `vendorval-node/${VERSION} (node/${process.version.slice(1)})`;
-const KEY_PREFIX = /^vv_(test|live)_/;
+const KEY_PREFIX = /^vv_(test|live|mcp)_/;
 
 export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
   const apiKey = opts.apiKey ?? process.env.VENDORVAL_API_KEY ?? "";
@@ -67,7 +67,7 @@ export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
   if (validate && !KEY_PREFIX.test(apiKey)) {
     throw new VendorvalError({
       message:
-        "API key has an unexpected prefix. Live keys start with `vv_live_`, test keys with `vv_test_`.",
+        "API key has an unexpected prefix. Expected `vv_live_`, `vv_test_` or `vv_mcp_`.",
       status: 0,
       type: "configuration_error",
       code: "invalid_api_key_prefix",
@@ -218,12 +218,10 @@ function buildHeaders(apiKey: string, options: RequestOptions): HeadersInit {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     "User-Agent": USER_AGENT,
-    "X-VendorVal-API-Version": API_VERSION,
-    // Opt in to the widened per-result enum
-    // (`clear` / `exact_match` / `probable_match`). The API aliases
-    // these down to the legacy 4-value enum for callers without the
-    // header. Sending the latest version on every install dogfoods the
-    // new shape; old SDK installs keep working unchanged.
+    // The API's version-negotiation header. Today it opts in to the widened
+    // per-result enum (`clear` / `exact_match` / `probable_match`); without
+    // it the API aliases those down to the legacy values. Sending the
+    // SDK's pinned date keeps responses stable for a given SDK release.
     "Accept-Version": API_VERSION,
     Accept: "application/json",
     ...options.headers,

@@ -5,6 +5,18 @@ This file is an aggregate index. Per-package changelogs live alongside each pack
 - [`packages/node/CHANGELOG.md`](./packages/node/CHANGELOG.md)
 - [`packages/python/CHANGELOG.md`](./packages/python/CHANGELOG.md)
 
+## 2026-10-09
+
+- **API alignment** (Node 0.10.0 + Python 0.10.0). Breaking. Monitors take `frequency` and `webhook_url`, return a per-monitor `webhook_secret` once, and gain `rotateSecret` / `rotate_secret`. `constructEvent` / `construct_event` verify the API's signed deliveries (`X-ETP-Signature` over `<timestamp>.<body>`, `X-ETP-Timestamp`, a 300-second tolerance) and now take the request headers. List methods follow `has_more` with offset pagination. `verifications.list()` and lookup's `legal_name` are removed. The enums (`EntityType`, `EntityRegion`, `CountryTier`, `IdentifierType`, `CheckType`, `CountryCode` with `GB`, `CheckStatus`) and the `Verification`, `VerificationResult`, `Monitor` and `MonitorEvent` shapes match the API. `vv_mcp_` keys are accepted. Both packages gain request-shape contract tests against `specs/openapi.json`, and the type-parity check now compares enum values. See the per-package changelogs for migration notes.
+
+## 2026-09-24
+
+- **Bank account validation and the corrected `LookupRefresh` shape** (Node 0.9.0 + Python 0.9.0). Adds `bankAccounts.validate()` (Python: `validate_iban()` / `validate_us_ach()`), the lookup response's `status` and `hot_pull` fields, and replaces `LookupRefresh`'s fields with the ones the API returns.
+
+## 2026-06-19
+
+- **Certification issuer scope** (Node 0.8.0 + Python 0.8.0). Type-only. Adds `CertificationIssuerScope`, `Certification.issuer_scope` and the `scope` filter on `certifications.list`.
+
 ## 2026-05-14
 
 - **`entity.regulatory_disclosures[]`** (Node 0.7.0 + Python 0.7.0). Adds a new `RegulatoryDisclosure` type (Node `interface` + Python `TypedDict`) and an optional `regulatory_disclosures` array on `Entity`. Type-only release coordinated with a corresponding change in the VendorVal API that adds the regulatory-disclosures surface to the lookup response.

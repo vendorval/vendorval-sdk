@@ -27,7 +27,7 @@ DEFAULT_BASE_URL = "https://api.vendorval.com"
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_RETRIES = 2
 
-_KEY_PREFIX = re.compile(r"^vv_(test|live)_")
+_KEY_PREFIX = re.compile(r"^vv_(test|live|mcp)_")
 _USER_AGENT = (
     f"vendorval-python/{VERSION} "
     f"(python/{platform.python_version()}; {platform.python_implementation().lower()})"
@@ -70,8 +70,7 @@ def resolve_config(
         )
     if validate_api_key and not _KEY_PREFIX.match(key):
         raise VendorvalError(
-            "API key has an unexpected prefix. Live keys start with 'vv_live_', "
-            "test keys with 'vv_test_'.",
+            "API key has an unexpected prefix. Expected 'vv_live_', 'vv_test_' or 'vv_mcp_'.",
             type="configuration_error",
             code="invalid_api_key_prefix",
         )
@@ -125,12 +124,10 @@ def prepare(
     h = {
         "Authorization": f"Bearer {cfg.api_key}",
         "User-Agent": _USER_AGENT,
-        "X-VendorVal-API-Version": API_VERSION,
-        # Opt in to the widened per-result enum
-        # (`clear` / `exact_match` / `probable_match`). The API aliases
-        # these down to the legacy 4-value enum for callers without the
-        # header. Sending the latest version on every install dogfoods
-        # the new shape; old SDK installs keep working unchanged.
+        # The API's version-negotiation header. Today it opts in to the
+        # widened per-result enum (`clear` / `exact_match` / `probable_match`);
+        # without it the API aliases those down to the legacy values. Sending
+        # the SDK's pinned date keeps responses stable for a given SDK release.
         "Accept-Version": API_VERSION,
         "Accept": "application/json",
     }

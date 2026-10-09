@@ -7,9 +7,7 @@
  *   node scripts/sync-openapi.mjs --url http://localhost:3000/v1/openapi.json
  *
  * The API serves the spec unauthenticated at /v1/openapi.json, so no token
- * is needed. (It used to come from a release asset on the private
- * vendorval-api repo, which needed a PAT with read access to that repo's
- * source; the public endpoint avoids holding one.)
+ * or credential is needed.
  */
 import { writeFile, readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";

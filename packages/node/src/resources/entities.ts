@@ -14,12 +14,19 @@ export class EntitiesResource {
     return { ...res.data, _requestId: res.requestId };
   }
 
+  /**
+   * Create an entity explicitly. Most integrations should use
+   * `verifications.create()` instead, which looks up or creates the entity
+   * as part of verifying it.
+   *
+   * Not sent with an idempotency key: the API does not deduplicate this
+   * route, so the key would be ignored.
+   */
   async create(request: CreateEntityRequest): Promise<Entity & { _requestId: string | null }> {
     const res = await performRequest<Entity>(this.client, {
       method: "POST",
       path: "/v1/entities",
       body: request,
-      autoIdempotency: true,
     });
     return { ...res.data, _requestId: res.requestId };
   }

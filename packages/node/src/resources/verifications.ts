@@ -1,5 +1,4 @@
 import { APITimeoutError } from "../errors.js";
-import { Page } from "../pagination.js";
 import { performRequest, type ResolvedClientOptions } from "../request.js";
 import { sleep, throwIfAborted } from "../sleep.js";
 import type { CreateVerificationRequest, VerifyRequest } from "../types/api.js";
@@ -77,16 +76,6 @@ export class VerificationsResource {
       timeout: reqOptions.timeout,
     });
     return { ...res.data, _requestId: res.requestId };
-  }
-
-  async list(query?: { limit?: number; status?: Verification["status"] }): Promise<Page<Verification>> {
-    const res = await performRequest<{ data: Verification[] } | Verification[]>(this.client, {
-      method: "GET",
-      path: "/v1/verifications",
-      query: query as Record<string, string | number | boolean | undefined> | undefined,
-    });
-    const items = Array.isArray(res.data) ? res.data : res.data.data ?? [];
-    return new Page(items);
   }
 
   /**

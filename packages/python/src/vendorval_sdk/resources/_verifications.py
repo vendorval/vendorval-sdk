@@ -13,7 +13,6 @@ import httpx
 
 from .._errors import APITimeoutError
 from .._models import Response, VerificationBundleResponse
-from .._pagination import Page
 from .._request import ResolvedConfig, execute_async, execute_sync, prepare
 from ..types import VerifyIdentifiers
 
@@ -45,6 +44,7 @@ def _build_verify_body(
     country: str | None,
     address: Mapping[str, Any] | None,
     mode: str | None,
+    verify_via: str | None,
     options: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {
@@ -61,6 +61,8 @@ def _build_verify_body(
         body["address"] = dict(address)
     if mode is not None:
         body["mode"] = mode
+    if verify_via is not None:
+        body["verify_via"] = verify_via
     if options is not None:
         body["options"] = dict(options)
     return body
@@ -81,6 +83,7 @@ class VerificationsResource:
         country: str | None = None,
         address: Mapping[str, Any] | None = None,
         mode: str | None = None,
+        verify_via: str | None = None,
         options: Mapping[str, Any] | None = None,
     ) -> VerificationBundleResponse:
         body = _build_verify_body(
@@ -91,6 +94,7 @@ class VerificationsResource:
             country=country,
             address=address,
             mode=mode,
+            verify_via=verify_via,
             options=options,
         )
         prepared = prepare(
@@ -123,22 +127,6 @@ class VerificationsResource:
         res = execute_sync(self._client, prepared)
         return Response(res.data, res.request_id, res.status)
 
-    def list(
-        self,
-        *,
-        limit: int | None = None,
-        status: str | None = None,
-    ) -> Page[Response]:
-        prepared = prepare(
-            self._cfg,
-            method="GET",
-            path="/v1/verifications",
-            query={"limit": limit, "status": status},
-        )
-        res = execute_sync(self._client, prepared)
-        items = res.data if isinstance(res.data, list) else (res.data or {}).get("data", [])
-        return Page([Response(item, res.request_id, res.status) for item in items])
-
     def create_and_wait(
         self,
         *,
@@ -149,6 +137,7 @@ class VerificationsResource:
         country: str | None = None,
         address: Mapping[str, Any] | None = None,
         mode: str | None = None,
+        verify_via: str | None = None,
         options: Mapping[str, Any] | None = None,
         timeout: float = 5 * 60.0,
         poll_interval: float = 1.0,
@@ -165,6 +154,7 @@ class VerificationsResource:
             country=country,
             address=address,
             mode=mode,
+            verify_via=verify_via,
             options=options,
         )
         verification = bundle.verification
@@ -203,6 +193,7 @@ class AsyncVerificationsResource:
         country: str | None = None,
         address: Mapping[str, Any] | None = None,
         mode: str | None = None,
+        verify_via: str | None = None,
         options: Mapping[str, Any] | None = None,
     ) -> VerificationBundleResponse:
         body = _build_verify_body(
@@ -213,6 +204,7 @@ class AsyncVerificationsResource:
             country=country,
             address=address,
             mode=mode,
+            verify_via=verify_via,
             options=options,
         )
         prepared = prepare(
@@ -245,22 +237,6 @@ class AsyncVerificationsResource:
         res = await execute_async(self._client, prepared)
         return Response(res.data, res.request_id, res.status)
 
-    async def list(
-        self,
-        *,
-        limit: int | None = None,
-        status: str | None = None,
-    ) -> Page[Response]:
-        prepared = prepare(
-            self._cfg,
-            method="GET",
-            path="/v1/verifications",
-            query={"limit": limit, "status": status},
-        )
-        res = await execute_async(self._client, prepared)
-        items = res.data if isinstance(res.data, list) else (res.data or {}).get("data", [])
-        return Page([Response(item, res.request_id, res.status) for item in items])
-
     async def create_and_wait(
         self,
         *,
@@ -271,6 +247,7 @@ class AsyncVerificationsResource:
         country: str | None = None,
         address: Mapping[str, Any] | None = None,
         mode: str | None = None,
+        verify_via: str | None = None,
         options: Mapping[str, Any] | None = None,
         timeout: float = 5 * 60.0,
         poll_interval: float = 1.0,
@@ -287,6 +264,7 @@ class AsyncVerificationsResource:
             country=country,
             address=address,
             mode=mode,
+            verify_via=verify_via,
             options=options,
         )
         verification = bundle.verification

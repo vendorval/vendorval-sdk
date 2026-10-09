@@ -26,6 +26,18 @@ def test_accepts_vv_test_prefix() -> None:
     client.close()
 
 
+def test_accepts_vv_live_and_vv_mcp_prefixes() -> None:
+    for key in ("vv_live_abc", "vv_mcp_abc"):
+        client = Vendorval(api_key=key)
+        assert client.api_key == key
+        client.close()
+
+
+def test_rejects_other_vv_prefixes() -> None:
+    with pytest.raises(VendorvalError, match="prefix"):
+        Vendorval(api_key="vv_prod_abc")
+
+
 def test_can_skip_validation() -> None:
     client = Vendorval(api_key="custom", validate_api_key=False)
     assert client.api_key == "custom"
@@ -58,7 +70,9 @@ def test_lookup_sends_bearer_and_version_headers() -> None:
     assert route.called
     request = route.calls.last.request
     assert request.headers["authorization"] == "Bearer vv_test_x"
-    assert request.headers["x-vendorval-api-version"] == Vendorval.API_VERSION
+    # The API ignores X-VendorVal-API-Version; Accept-Version is the header it reads.
+    assert "x-vendorval-api-version" not in request.headers
+    assert request.headers["accept-version"] == Vendorval.API_VERSION
     assert request.headers["user-agent"].startswith("vendorval-python/")
     assert result.match == "not_found"
     assert result.request_id == "req_abc"

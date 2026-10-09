@@ -4,28 +4,36 @@
  * consumers can opt into stricter shapes once the spec stabilizes.
  */
 
+/**
+ * Identifier types the API stores and accepts in the `{ type, value }` form
+ * (`entities.create`, the array form of `verifications.create`) and reports in
+ * `meta.listSupportedCountries()`.
+ *
+ * `name` and `dba` are not identifiers: they are fuzzy-match signals accepted
+ * only by `entities.lookup`. See `LookupIdentifierKey`.
+ */
 export type IdentifierType =
-  | "uei"
   | "tin"
+  | "uei"
   | "duns"
   | "cage"
   | "lei"
-  | "vat_id"
-  | "name"
-  | "dba"
-  | "domain"
-  | "phone"
   // `state_registration` is a deprecated alias for `state_entity_id`.
   // Both are accepted by the API.
   | "state_registration"
-  // Issuer-qualified identifier types. The API accepts these today;
-  // population from upstream sources is rolling out.
+  // Issuer-qualified identifier types (`"<ISSUER>:<value>"`).
   | "state_entity_id"
   | "diversity_cert_id"
   | "contractor_license_id"
   | "medicaid_provider_id"
   | "wcb_employer_number"
-  | "npi";
+  | "npi"
+  | "vat_id"
+  | "domain"
+  | "phone";
+
+/** Keys accepted in `entities.lookup({ identifiers })`: every identifier type plus the name signals. */
+export type LookupIdentifierKey = IdentifierType | "name" | "dba";
 
 export type CheckType =
   | "sam_registration"
@@ -35,7 +43,13 @@ export type CheckType =
   | "vat_validation"
   | "lei_validation"
   | "sanctions_screening"
-  | "usps_address";
+  | "usps_address"
+  // Reads the entity's public regulatory filings (FARA today). Used by
+  // `verify_via: "fara_only"`; makes no external call.
+  | "regulatory_disclosure_check"
+  // Reports the entity's active SBA small-business certifications from
+  // VendorVal's reconciled certification data. Cached-only.
+  | "small_business_certification";
 
 /**
  * ISO 3166-1 alpha-2 country codes the API currently supports.
@@ -43,14 +57,21 @@ export type CheckType =
  */
 export type CountryCode =
   | "US"
+  // United Kingdom. Supported through global checks only (`tier: "global_only"`).
+  | "GB"
   // EU 27
   | "AT" | "BE" | "BG" | "CY" | "CZ" | "DE" | "DK" | "EE" | "ES" | "FI"
   | "FR" | "GR" | "HR" | "HU" | "IE" | "IT" | "LT" | "LU" | "LV" | "MT"
   | "NL" | "PL" | "PT" | "RO" | "SE" | "SI" | "SK";
 
-export type EntityRegion = "north_america" | "european_union";
+/** Coarse grouping returned by `meta.listSupportedCountries()`. GB is `"other"`. */
+export type EntityRegion = "north_america" | "eu" | "other";
 
-export type CountryTier = "full" | "limited";
+/**
+ * `full`: at least one country-specific provider (SAM.gov, IRS, VIES, …).
+ * `global_only`: supported only through global checks (LEI and sanctions).
+ */
+export type CountryTier = "full" | "global_only";
 
 export interface SupportedCountrySummary {
   code: CountryCode;
@@ -72,12 +93,10 @@ export type VerificationMode = "cached" | "realtime";
 export type EntityType =
   | "corporation"
   | "llc"
+  | "sole_proprietor"
   | "partnership"
-  | "sole_proprietorship"
-  | "nonprofit"
   | "government"
-  | "individual"
-  | "other";
+  | "nonprofit";
 
 export type LookupMode = "exact" | "fuzzy";
 
@@ -327,41 +346,67 @@ export interface RegulatoryDisclosure {
 }
 
 /**
- * Per-check result status. The SDK auto-attaches `Accept-Version` (see
- * `request.ts`) so the wire returns the widened enum verbatim. Legacy
- * values still appear in responses today because no source emits the new
- * ones yet; both shapes are listed in the union so when the new values
- * do start appearing, calling code renders them correctly without a
- * type-only SDK release.
+ * Per-check result status. The SDK sends `Accept-Version` (see `request.ts`)
+ * so the API returns the widened enum (`clear` / `exact_match` /
+ * `probable_match`) verbatim instead of aliasing it to the legacy values.
+ * `skipped` means the entity lacked the identifier the check needs.
  */
 export type CheckStatus =
   | "pass" | "fail" | "inconclusive" | "error" | "pending"
-  | "clear" | "exact_match" | "probable_match";
+  | "clear" | "exact_match" | "probable_match"
+  | "skipped";
+
+/** Lifecycle of a verification. */
+export type VerificationStatus = "pending" | "in_progress" | "completed" | "failed" | "expired";
+
+/**
+ * Roll-up across every check in a verification. `partial` means some checks
+ * passed and others did not reach a definitive pass. Null until the
+ * verification completes.
+ */
+export type OverallResult = "pass" | "fail" | "partial" | "inconclusive";
+
+/** Where a check result's data came from. */
+export interface VerificationResultSource {
+  name: string;
+  display_name: string;
+  retrieved_at: string;
+  record_reference?: string | null;
+  confidence: number;
+  mapping_version: string;
+  freshness: "daily_sync" | "realtime" | "manual_upload";
+  raw_available: boolean;
+}
 
 export interface VerificationResult {
+  id: string;
   check_type: CheckType;
   status: CheckStatus;
-  confidence?: number;
-  origin?: string;
-  determinism?: string;
-  data_freshness_seconds?: number;
-  evidence_uri?: string;
-  details?: Record<string, unknown>;
+  confidence: number | null;
+  explanation?: string | null;
+  provider_name: string;
+  origin?: string | null;
+  determinism?: string | null;
+  data_freshness_seconds?: number | null;
+  evidence_uri?: string | null;
+  executed_at: string | null;
+  created_at: string;
+  source: VerificationResultSource;
 }
 
 export interface Verification {
   object: "verification";
   id: string;
   entity_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  overall_result?: "pass" | "fail" | "inconclusive";
-  checks_requested: CheckType[];
+  status: VerificationStatus;
   mode: VerificationMode;
-  results: VerificationResult[];
-  webhook_url?: string | null;
-  idempotency_key?: string | null;
+  checks_requested: CheckType[];
+  overall_result: OverallResult | null;
+  initiated_by?: string | null;
+  webhook_url: string | null;
+  completed_at: string | null;
   created_at: string;
-  updated_at: string;
+  results: VerificationResult[];
 }
 
 export interface VerificationBundle {
@@ -390,24 +435,115 @@ export interface Provider {
   }>;
 }
 
+/** How often a monitor re-runs its checks. */
+export type MonitorFrequency = "daily" | "weekly" | "monthly";
+
+export type MonitorStatus = "active" | "paused" | "cancelled";
+
 export interface Monitor {
   object: "monitor";
   id: string;
   entity_id: string;
   checks: CheckType[];
-  cadence: string;
-  status: "active" | "paused" | "deleted";
+  frequency: MonitorFrequency;
+  /** Where change events are delivered. */
+  webhook_url: string;
+  /** When the signing secret was last issued or rotated. The secret itself is never returned here. */
+  webhook_secret_rotated_at: string | null;
+  status: MonitorStatus;
+  last_run_at: string | null;
+  next_run_at: string | null;
   created_at: string;
-  updated_at: string;
 }
 
-export interface MonitorEvent {
-  id: string;
-  monitor_id: string;
-  type: string;
-  detected_at: string;
-  payload?: Record<string, unknown>;
+/**
+ * Returned by `monitors.create()` and `monitors.rotateSecret()` only.
+ *
+ * `webhook_secret` is shown exactly once. Store it: it is the key you pass to
+ * `constructEvent()` to verify this monitor's deliveries. If you lose it,
+ * rotate it.
+ */
+export interface MonitorWithSecret extends Monitor {
+  webhook_secret: string;
 }
+
+/** One change a monitor detected, from `monitors.events()`. */
+export interface MonitorEvent {
+  object: "change_event";
+  id: string;
+  event_type: string;
+  field_path: string | null;
+  previous_value: unknown;
+  new_value: unknown;
+  detected_at: string;
+  verification_id: string | null;
+  notified: boolean;
+}
+
+/** Envelope shared by the API's offset-paginated list endpoints. */
+export interface ListEnvelope<T> {
+  object: "list";
+  data: T[];
+  total: number;
+  has_more: boolean;
+  limit: number;
+  offset: number;
+}
+
+// ─── Webhook payloads ────────────────────────────────────────────────────
+
+/** One change carried by a `monitoring.changes_detected` delivery. */
+export interface WebhookChange {
+  event_type: string;
+  field_path: string | null;
+  previous_value: unknown;
+  new_value: unknown;
+  detected_at: string;
+}
+
+export interface MonitoringChangesDetectedData {
+  monitor_id: string;
+  entity_id: string;
+  changes: WebhookChange[];
+  /** The verification that detected the change, or null if it no longer exists. */
+  verification_id: string | null;
+}
+
+/**
+ * Sent when a monitor detects a change. Each delivery carries exactly one
+ * change, so a run that detects N changes sends N deliveries.
+ */
+export interface MonitoringChangesDetectedEvent {
+  event: "monitoring.changes_detected";
+  created_at: string;
+  data: MonitoringChangesDetectedData;
+}
+
+export interface VerificationCompletedResult {
+  check_type: CheckType;
+  status: CheckStatus;
+  confidence: number | null;
+  provider_name: string;
+  origin?: string | null;
+}
+
+export interface VerificationCompletedData {
+  id: string;
+  entity_id: string;
+  status: VerificationStatus;
+  overall_result: OverallResult | null;
+  completed_at: string | null;
+  results: VerificationCompletedResult[];
+}
+
+/** Sent when a verification created with `options.webhook_url` completes. */
+export interface VerificationCompletedEvent {
+  event: "verification.completed";
+  created_at: string;
+  data: VerificationCompletedData;
+}
+
+export type WebhookEvent = MonitoringChangesDetectedEvent | VerificationCompletedEvent;
 
 export interface BulkJob {
   object: "bulk_job";
