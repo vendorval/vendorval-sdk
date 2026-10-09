@@ -76,10 +76,8 @@ def main() -> None:
             return "invalid", 400
 
         delivery_id = request.headers.get(WEBHOOK_DELIVERY_ID_HEADER)
-        if delivery_id is not None:
-            if delivery_id in seen:
-                return "duplicate", 200
-            seen.add(delivery_id)
+        if delivery_id is not None and delivery_id in seen:
+            return "duplicate", 200
 
         if event["event"] == "monitoring.changes_detected":
             for change in event["data"]["changes"]:
@@ -92,6 +90,9 @@ def main() -> None:
                 )
         else:
             print("received event", event["event"])
+        # Record the id only once handling succeeded, so a failed delivery is retried.
+        if delivery_id is not None:
+            seen.add(delivery_id)
         return "ok", 200
 
     app.run(port=8787)

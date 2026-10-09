@@ -109,6 +109,21 @@ def test_tolerance_window_both_directions() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"tolerance": float("nan")},
+        {"tolerance": float("inf")},
+        {"tolerance": -1},
+        {"now": float("nan")},
+    ],
+)
+def test_rejects_tolerance_or_clock_that_disables_replay_check(options: dict[str, float]) -> None:
+    body, headers = deliver(json.dumps(EVENT), timestamp=1)
+    with pytest.raises(ValueError):
+        construct_event(body, headers, SECRET, **options)  # type: ignore[arg-type]
+
+
 def test_names_missing_or_malformed_headers() -> None:
     body, headers = deliver(json.dumps(EVENT))
     no_sig = {k: v for k, v in headers.items() if k != "X-ETP-Signature"}

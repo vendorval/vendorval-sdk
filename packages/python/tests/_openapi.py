@@ -101,6 +101,8 @@ def validate(raw_schema: dict[str, Any], value: Any, at: str) -> list[str]:
             return [*problems, f"{at}: expected {'|'.join(types)}, got {actual}"]
     if "enum" in schema and value not in schema["enum"]:
         problems.append(f"{at}: {json.dumps(value)} is not one of {json.dumps(schema['enum'])}")
+    if "const" in schema and value != schema["const"]:
+        problems.append(f"{at}: expected {json.dumps(schema['const'])}")
 
     if isinstance(value, str):
         if "minLength" in schema and len(value) < schema["minLength"]:
@@ -114,6 +116,10 @@ def validate(raw_schema: dict[str, Any], value: Any, at: str) -> list[str]:
             problems.append(f"{at}: below {schema['minimum']}")
         if "maximum" in schema and value > schema["maximum"]:
             problems.append(f"{at}: above {schema['maximum']}")
+        if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
+            problems.append(f"{at}: not above {schema['exclusiveMinimum']}")
+        if "exclusiveMaximum" in schema and value >= schema["exclusiveMaximum"]:
+            problems.append(f"{at}: not below {schema['exclusiveMaximum']}")
     if isinstance(value, list):
         if "minItems" in schema and len(value) < schema["minItems"]:
             problems.append(f"{at}: fewer than {schema['minItems']} items")

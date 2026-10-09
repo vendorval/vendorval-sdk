@@ -61,7 +61,9 @@ def resolve_config(
     max_retries: int | None,
     validate_api_key: bool,
 ) -> ResolvedConfig:
-    key = api_key or os.environ.get("VENDORVAL_API_KEY") or ""
+    # An explicit api_key wins, even "", so a blank config value is never
+    # silently replaced by the environment key (same as the Node SDK).
+    key = api_key if api_key is not None else (os.environ.get("VENDORVAL_API_KEY") or "")
     if not key:
         raise VendorvalError(
             "Missing API key. Pass api_key= or set VENDORVAL_API_KEY in the environment.",

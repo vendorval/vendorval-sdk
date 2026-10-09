@@ -55,6 +55,13 @@ def test_falls_back_to_env(monkeypatch: pytest.MonkeyPatch) -> None:
         client.close()
 
 
+def test_explicit_empty_key_does_not_fall_back_to_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VENDORVAL_API_KEY", "vv_test_envkey")
+    with pytest.raises(VendorvalError) as exc:
+        Vendorval(api_key="")
+    assert exc.value.code == "missing_api_key"
+
+
 @respx.mock
 def test_lookup_sends_bearer_and_version_headers() -> None:
     route = respx.post("https://api.example/v1/entities/lookup").mock(

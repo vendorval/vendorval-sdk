@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import re
 import time
 from collections.abc import Mapping
@@ -95,6 +96,11 @@ def construct_event(
         )
 
     current = time.time() if now is None else now
+    # NaN or infinity here would make the age check pass for any timestamp.
+    if not math.isfinite(tolerance) or tolerance < 0 or not math.isfinite(current):
+        raise ValueError(
+            "tolerance and now must be finite numbers, and tolerance must not be negative."
+        )
     age = abs(current - int(ts))
     if age > tolerance:
         raise _error(

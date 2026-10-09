@@ -96,6 +96,10 @@ export function constructEvent(
 
   const tolerance = options.tolerance ?? DEFAULT_WEBHOOK_TOLERANCE_SECONDS;
   const now = options.now ?? Math.floor(Date.now() / 1000);
+  // NaN or Infinity here would make the age check pass for any timestamp.
+  if (!Number.isFinite(tolerance) || tolerance < 0 || !Number.isFinite(now)) {
+    throw new TypeError("tolerance and now must be finite numbers, and tolerance must not be negative.");
+  }
   const age = Math.abs(now - Number(ts));
   if (age > tolerance) {
     throw webhookError(

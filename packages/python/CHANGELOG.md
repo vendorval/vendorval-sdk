@@ -41,6 +41,8 @@ This release brings the SDK in line with the API's current request and response 
 - **IDs in URL paths are percent-encoded** (`quote(id, safe="")`) everywhere, including job and usage IDs. An ID containing `/` or `?` can no longer change the request path.
 - **`entities.create()` and `monitors.create()` no longer send an `Idempotency-Key`.** The API does not deduplicate these routes, so the key had no effect.
 - **The `X-VendorVal-API-Version` header is no longer sent.** The API does not read it. `Accept-Version`, which the API does read, is still sent with the SDK's pinned API version.
+- **An explicit `api_key=""` is treated as missing** and raises `missing_api_key`. It no longer falls back to `VENDORVAL_API_KEY`. Omit `api_key` (or pass `None`) to use the environment variable.
+- **`construct_event()` raises `ValueError` for a `tolerance` or `now` that is not finite, or a negative `tolerance`.** Such values used to disable the replay check.
 
 ### Documentation
 

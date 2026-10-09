@@ -119,6 +119,13 @@ describe("constructEvent", () => {
     );
   });
 
+  it("throws on a tolerance or clock that would disable the replay check", () => {
+    const d = deliver(JSON.stringify(EVENT), { timestamp: 1 });
+    for (const options of [{ tolerance: Number.NaN }, { tolerance: Infinity }, { tolerance: -1 }, { now: Number.NaN }]) {
+      expect(() => constructEvent(d.body, d.headers, SECRET, options)).toThrow(TypeError);
+    }
+  });
+
   it("names the missing or malformed header", () => {
     const d = deliver(JSON.stringify(EVENT));
     const { "x-etp-signature": _sig, ...noSig } = d.headers;

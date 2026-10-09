@@ -86,8 +86,6 @@ const server = createServer((req, res) => {
       res.end("duplicate");
       return;
     }
-    if (typeof deliveryId === "string") seen.add(deliveryId);
-
     if (event.event === "monitoring.changes_detected") {
       for (const change of event.data.changes) {
         console.log(
@@ -101,6 +99,8 @@ const server = createServer((req, res) => {
     } else {
       console.log("received event", event.event);
     }
+    // Record the id only once handling succeeded, so a failed delivery is retried.
+    if (typeof deliveryId === "string") seen.add(deliveryId);
     res.statusCode = 200;
     res.end("ok");
   });

@@ -38,6 +38,7 @@ This release brings the SDK in line with the API's current request and response 
 - **`Page.all()` and `for await` cover every page,** not only the first. Use `page.data` for a single page.
 - **`entities.create()` and `monitors.create()` no longer send an `Idempotency-Key`.** The API does not deduplicate these routes, so the key had no effect.
 - **The `X-VendorVal-API-Version` header is no longer sent.** The API does not read it. `Accept-Version`, which the API does read, is still sent with the SDK's pinned API version.
+- **`constructEvent()` throws a `TypeError` for a `tolerance` or `now` that is not finite, or a negative `tolerance`.** Such values used to disable the replay check.
 
 ### Documentation
 
