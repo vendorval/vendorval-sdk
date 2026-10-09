@@ -130,7 +130,8 @@ export interface IdentifierRecord {
 }
 
 /**
- * Standalone address endpoints (free, rate-limited per tenant). Distinct
+ * Standalone address endpoints (rate-limited per tenant; lookup is metered
+ * per API request, see your plan). Distinct
  * from `AddressRecord` (which is the per-entity address row returned on
  * entity reads).
  */

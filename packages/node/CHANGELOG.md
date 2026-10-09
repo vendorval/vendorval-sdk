@@ -39,6 +39,10 @@ This release brings the SDK in line with the API's current request and response 
 - **`entities.create()` and `monitors.create()` no longer send an `Idempotency-Key`.** The API does not deduplicate these routes, so the key had no effect.
 - **The `X-VendorVal-API-Version` header is no longer sent.** The API does not read it. `Accept-Version`, which the API does read, is still sent with the SDK's pinned API version.
 
+### Documentation
+
+- **`addresses.lookup()` is no longer described as free.** API-key calls to it, to `GET /v1/entities` and to `GET /v1/entities/{id}` are metered per API request; see your plan. `addresses.suggest()` is not metered.
+
 ## 0.9.0
 
 ### Added
