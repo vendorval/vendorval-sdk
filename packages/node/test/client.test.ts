@@ -50,7 +50,7 @@ describe("Vendorval client construction", () => {
   });
 
   it("still rejects other vv_ prefixes", () => {
-    expect(() => new Vendorval({ apiKey: "vv_prod_xyz789" })).toThrowError(/prefix/);
+    expect(() => new Vendorval({ apiKey: "vv_prod_x" })).toThrowError(/prefix/);
   });
 
   it("can be opted out of prefix validation", () => {
