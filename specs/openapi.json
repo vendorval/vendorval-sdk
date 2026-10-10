@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "vendorval API",
-    "description": "API-first entity lookup and verification. See /v1/docs for the interactive spec and /v1/openapi.json for the raw OpenAPI document. All routes except GET /v1/health require a bearer token.",
+    "description": "API-first entity lookup and verification. See /v1/docs for the interactive spec and /v1/openapi.json for the raw OpenAPI document. Most routes require a bearer token (an API key, or a dashboard session token on account routes). The health checks, these docs, the legal documents, /v1/meta/* and /v1/invitations/preview are public.",
     "version": "1.0.0"
   },
   "components": {
