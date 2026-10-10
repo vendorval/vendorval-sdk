@@ -1,7 +1,5 @@
-# Source of truth: vendorval/vendorval-app, generalised from
-# .github/actions/smoke-notify. This directory is copied verbatim into
-# vendorval-api, -data, -platform, -com, -mcp and -sdk (a private action
-# can't be shared reliably across private repos). Change every copy together.
+# Shared failure-notification action. Other VendorVal repositories carry an
+# identical copy of this directory, so make changes here in step with them.
 name: Failure notify
 description: >-
   Turns a scheduled or monitoring workflow's result into a state change a
@@ -18,10 +16,10 @@ description: >-
   messages) and `issues: write`.
 
   Local dry run (reads the real API, prints the writes instead of doing them):
-    DRY_RUN=1 RESULT=failure TITLE='Link check failing' \
-      WORKFLOW_NAME='Link check' \
-      WORKFLOW_REF='vendorval/vendorval-com/.github/workflows/link-check.yml@refs/heads/main' \
-      GITHUB_REPOSITORY=vendorval/vendorval-com GITHUB_RUN_ID=<id> GITHUB_RUN_ATTEMPT=1 \
+    DRY_RUN=1 RESULT=failure TITLE='Spec drift failing' \
+      WORKFLOW_NAME='Spec drift' \
+      WORKFLOW_REF='vendorval/vendorval-sdk/.github/workflows/spec-drift.yml@refs/heads/main' \
+      GITHUB_REPOSITORY=vendorval/vendorval-sdk GITHUB_RUN_ID=<id> GITHUB_RUN_ATTEMPT=1 \
       GITHUB_OUTPUT=/dev/stdout GH_TOKEN=$(gh auth token) \
       bash .github/actions/failure-notify/notify.sh
 

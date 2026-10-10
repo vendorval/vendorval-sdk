@@ -9,28 +9,50 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
+# Identifier types the API stores and accepts in the `{type, value}` form
+# (`entities.create`, the list form of `verifications.create`) and reports in
+# `meta.list_supported_countries()`. `name` and `dba` are not identifiers:
+# they are fuzzy-match signals accepted only by `entities.lookup`.
 IdentifierType = Literal[
-    "uei",
     "tin",
+    "uei",
     "duns",
     "cage",
     "lei",
-    "vat_id",
-    "name",
-    "dba",
-    "domain",
-    "phone",
     # `state_registration` is a deprecated alias for `state_entity_id`.
     # Both are accepted by the API.
     "state_registration",
-    # Issuer-qualified identifier types. The API accepts these today;
-    # population from upstream sources is rolling out.
+    # Issuer-qualified identifier types (`"<ISSUER>:<value>"`).
     "state_entity_id",
     "diversity_cert_id",
     "contractor_license_id",
     "medicaid_provider_id",
     "wcb_employer_number",
     "npi",
+    "vat_id",
+    "domain",
+    "phone",
+]
+# Keys accepted in `entities.lookup(identifiers=...)`: every identifier type
+# plus the name signals.
+LookupIdentifierKey = Literal[
+    "tin",
+    "uei",
+    "duns",
+    "cage",
+    "lei",
+    "state_registration",
+    "state_entity_id",
+    "diversity_cert_id",
+    "contractor_license_id",
+    "medicaid_provider_id",
+    "wcb_employer_number",
+    "npi",
+    "vat_id",
+    "domain",
+    "phone",
+    "name",
+    "dba",
 ]
 CheckType = Literal[
     "sam_registration",
@@ -41,32 +63,72 @@ CheckType = Literal[
     "lei_validation",
     "sanctions_screening",
     "usps_address",
+    # Reads the entity's public regulatory filings (FARA today). Used by
+    # `verify_via="fara_only"`; makes no external call.
+    "regulatory_disclosure_check",
+    # Reports the entity's active SBA small-business certifications from
+    # VendorVal's reconciled certification data. Cached-only.
+    "small_business_certification",
 ]
 
 # ISO 3166-1 alpha-2 country codes the API currently supports. The full
 # list is also discoverable at runtime via `client.meta.list_supported_countries()`.
 CountryCode = Literal[
     "US",
+    # United Kingdom. Supported through global checks only (tier "global_only").
+    "GB",
     # EU 27
     "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
     "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT",
     "NL", "PL", "PT", "RO", "SE", "SI", "SK",
 ]
-EntityRegion = Literal["north_america", "european_union"]
-CountryTier = Literal["full", "limited"]
+# Coarse grouping returned by `meta.list_supported_countries()`. GB is "other".
+EntityRegion = Literal["north_america", "eu", "other"]
+# "full": at least one country-specific provider (SAM.gov, IRS, VIES, ...).
+# "global_only": supported only through global checks (LEI and sanctions).
+CountryTier = Literal["full", "global_only"]
 VerificationMode = Literal["cached", "realtime"]
 EntityType = Literal[
     "corporation",
     "llc",
+    "sole_proprietor",
     "partnership",
-    "sole_proprietorship",
-    "nonprofit",
     "government",
-    "individual",
-    "other",
+    "nonprofit",
 ]
 LookupMode = Literal["exact", "fuzzy"]
 SamRefreshMode = Literal["auto", "force", "never"]
+# `providers` (default) runs `checks` against the verification providers.
+# `fara_only` reports the entity's FARA filings as a single
+# `regulatory_disclosure_check` result; `checks` is ignored.
+VerifyVia = Literal["providers", "fara_only"]
+MonitorFrequency = Literal["daily", "weekly", "monthly"]
+MonitorStatus = Literal["active", "paused", "cancelled"]
+# Top-level `entity` keys `entities.lookup(fields=...)` can select. `id` and
+# `object` are always returned.
+LookupEntityField = Literal[
+    "legal_name",
+    "normalized_name",
+    "dba_name",
+    "website_url",
+    "state_of_incorporation",
+    "entity_type",
+    "legal_structure",
+    "sector",
+    "status",
+    "country",
+    "confidence",
+    "identifiers",
+    "sam_gov",
+    "addresses",
+    "registrations",
+    "sources",
+    "field_attribution",
+    "classifications",
+    "regulatory_disclosures",
+    "created_at",
+    "updated_at",
+]
 
 
 class IdentifierInput(TypedDict):
@@ -270,11 +332,11 @@ class RegulatoryDisclosure(TypedDict, total=False):
     updated_at: str
 
 
-# Per-check result status. The SDK auto-attaches `Accept-Version` (see
-# `_request.py`) so the wire returns the widened enum verbatim. Legacy
-# values still appear today because no source emits the new ones yet;
-# both shapes are listed so when the new values do start appearing,
-# calling code renders correctly without a type-only SDK release.
+# Per-check result status. The SDK sends `Accept-Version` (see
+# `_request.py`) so the API returns the widened enum (`clear` /
+# `exact_match` / `probable_match`) verbatim instead of aliasing it to the
+# legacy values. `skipped` means the entity lacked the identifier the check
+# needs.
 CheckStatus = Literal[
     "pass",
     "fail",
@@ -284,33 +346,56 @@ CheckStatus = Literal[
     "clear",
     "exact_match",
     "probable_match",
+    "skipped",
 ]
+
+VerificationStatus = Literal["pending", "in_progress", "completed", "failed", "expired"]
+
+# Roll-up across every check. `partial` means some checks passed and others
+# did not reach a definitive pass. None until the verification completes.
+OverallResult = Literal["pass", "fail", "partial", "inconclusive"]
+
+
+class VerificationResultSource(TypedDict, total=False):
+    name: str
+    display_name: str
+    retrieved_at: str
+    record_reference: str | None
+    confidence: float
+    mapping_version: str
+    freshness: Literal["daily_sync", "realtime", "manual_upload"]
+    raw_available: bool
 
 
 class VerificationResult(TypedDict, total=False):
+    id: str
     check_type: CheckType
     status: CheckStatus
-    confidence: float
-    origin: str
-    determinism: str
-    data_freshness_seconds: int
-    evidence_uri: str
-    details: Any
+    confidence: float | None
+    explanation: str | None
+    provider_name: str
+    origin: str | None
+    determinism: str | None
+    data_freshness_seconds: int | None
+    evidence_uri: str | None
+    executed_at: str | None
+    created_at: str
+    source: VerificationResultSource
 
 
 class Verification(TypedDict, total=False):
     object: Literal["verification"]
     id: str
     entity_id: str
-    status: Literal["pending", "running", "completed", "failed"]
-    overall_result: Literal["pass", "fail", "inconclusive"]
-    checks_requested: list[CheckType]
+    status: VerificationStatus
     mode: VerificationMode
-    results: list[VerificationResult]
+    checks_requested: list[CheckType]
+    overall_result: OverallResult | None
+    initiated_by: str | None
     webhook_url: str | None
-    idempotency_key: str | None
+    completed_at: str | None
     created_at: str
-    updated_at: str
+    results: list[VerificationResult]
 
 
 class VerificationBundle(TypedDict):
@@ -530,3 +615,102 @@ class LookupHotPull(TypedDict, total=False):
     correlation_id: str
     poll_url: str
     reason: str
+
+
+# ─── Monitors ───────────────────────────────────────────────────────────────
+
+
+class Monitor(TypedDict, total=False):
+    object: Literal["monitor"]
+    id: str
+    entity_id: str
+    checks: list[CheckType]
+    frequency: MonitorFrequency
+    # Where change events are delivered.
+    webhook_url: str
+    # When the signing secret was last issued or rotated. The secret itself is
+    # never returned here.
+    webhook_secret_rotated_at: str | None
+    status: MonitorStatus
+    last_run_at: str | None
+    next_run_at: str | None
+    created_at: str
+
+
+class MonitorWithSecret(Monitor, total=False):
+    """Returned by ``monitors.create()`` and ``monitors.rotate_secret()`` only.
+
+    ``webhook_secret`` is shown exactly once. Store it: it is the key you pass
+    to ``construct_event()`` to verify this monitor's deliveries.
+    """
+
+    webhook_secret: str
+
+
+class MonitorEvent(TypedDict, total=False):
+    """One change a monitor detected, from ``monitors.events()``."""
+
+    object: Literal["change_event"]
+    id: str
+    event_type: str
+    field_path: str | None
+    previous_value: Any
+    new_value: Any
+    detected_at: str
+    verification_id: str | None
+    notified: bool
+
+
+# ─── Webhook payloads ───────────────────────────────────────────────────────
+
+
+class WebhookChange(TypedDict, total=False):
+    event_type: str
+    field_path: str | None
+    previous_value: Any
+    new_value: Any
+    detected_at: str
+
+
+class MonitoringChangesDetectedData(TypedDict, total=False):
+    monitor_id: str
+    entity_id: str
+    changes: list[WebhookChange]
+    # The verification that detected the change, or None if it no longer exists.
+    verification_id: str | None
+
+
+class MonitoringChangesDetectedEvent(TypedDict):
+    """Sent when a monitor detects a change. Each delivery carries one change."""
+
+    event: Literal["monitoring.changes_detected"]
+    created_at: str
+    data: MonitoringChangesDetectedData
+
+
+class VerificationCompletedResult(TypedDict, total=False):
+    check_type: CheckType
+    status: CheckStatus
+    confidence: float | None
+    provider_name: str
+    origin: str | None
+
+
+class VerificationCompletedData(TypedDict, total=False):
+    id: str
+    entity_id: str
+    status: VerificationStatus
+    overall_result: OverallResult | None
+    completed_at: str | None
+    results: list[VerificationCompletedResult]
+
+
+class VerificationCompletedEvent(TypedDict):
+    """Sent when a verification created with ``options.webhook_url`` completes."""
+
+    event: Literal["verification.completed"]
+    created_at: str
+    data: VerificationCompletedData
+
+
+WebhookEvent = MonitoringChangesDetectedEvent | VerificationCompletedEvent

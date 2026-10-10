@@ -44,6 +44,15 @@ describe("Vendorval client construction", () => {
     expect(c.options.apiKey).toBe("vv_live_xyz789");
   });
 
+  it("accepts a vv_mcp_ prefix (MCP-scoped keys)", () => {
+    const c = new Vendorval({ apiKey: "vv_mcp_xyz789" });
+    expect(c.options.apiKey).toBe("vv_mcp_xyz789");
+  });
+
+  it("still rejects other vv_ prefixes", () => {
+    expect(() => new Vendorval({ apiKey: "vv_prod_x" })).toThrowError(/prefix/);
+  });
+
   it("can be opted out of prefix validation", () => {
     const c = new Vendorval({ apiKey: "custom_internal_key", validateApiKey: false });
     expect(c.options.apiKey).toBe("custom_internal_key");
@@ -90,7 +99,9 @@ describe("Vendorval client construction", () => {
     expect(init.method).toBe("POST");
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer vv_test_abc");
-    expect(headers["X-VendorVal-API-Version"]).toBe(Vendorval.API_VERSION);
+    // The API ignores X-VendorVal-API-Version; Accept-Version is the header it reads.
+    expect(headers["X-VendorVal-API-Version"]).toBeUndefined();
+    expect(headers["Accept-Version"]).toBe(Vendorval.API_VERSION);
     expect(headers["User-Agent"]).toMatch(/^vendorval-node\//);
     expect(headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(init.body as string)).toEqual({ identifiers: { uei: "X" } });

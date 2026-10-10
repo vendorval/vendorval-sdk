@@ -1,5 +1,53 @@
 # vendorval-sdk (Python)
 
+## 0.10.0
+
+This release brings the SDK in line with the API's current request and response shapes. Several of the old shapes no longer matched what the API accepts or returns, so most of the changes below are breaking. Each one says what to change.
+
+### Added
+
+- **Signed webhook verification for monitors.** `construct_event(payload, headers, secret)` verifies the `X-ETP-Signature: sha256=<hex>` header, an HMAC-SHA256 of `"<X-ETP-Timestamp>.<raw body>"` with the monitor's secret. It compares in constant time and rejects deliveries whose timestamp is more than 300 seconds from now (`tolerance=` changes the window). Deliveries are at-least-once, so use `X-ETP-Delivery-Id` to drop repeats. New exports: `WEBHOOK_SIGNATURE_HEADER`, `WEBHOOK_TIMESTAMP_HEADER`, `WEBHOOK_DELIVERY_ID_HEADER`, `WEBHOOK_EVENT_HEADER` and `DEFAULT_WEBHOOK_TOLERANCE_SECONDS`, plus the payload types `WebhookEvent`, `MonitoringChangesDetectedEvent` and `VerificationCompletedEvent` in `vendorval_sdk.types`.
+
+  ```python
+  event = construct_event(request.get_data(), request.headers, monitor_secret)
+  if event["event"] == "monitoring.changes_detected":
+      for change in event["data"]["changes"]:
+          print(change["event_type"])
+  ```
+
+- **`monitors.rotate_secret(monitor_id)`** issues a new signing secret for a monitor. Like `monitors.create()`, it returns `webhook_secret` once.
+- **`monitors.create()`** returns the `webhook_secret` for that monitor. It is not returned anywhere else, so store it.
+- **Offset pagination that follows `has_more`.** `monitors.list()` and `monitors.events()` take `limit` and `offset`. Iterating the returned page, or calling `.all()`, now walks every page instead of stopping after the first. `page.data`, `page.has_more`, `page.total` and `page.next_page()` are available for manual paging.
+- **`AsyncPage`**: the async client's list methods return it. Use `async for item in page` and `await page.all()`.
+- **`entities.lookup(fields=[...])`** returns only the listed `entity` keys (`LookupEntityField`).
+- **`verify_via=`** on `verifications.create()` / `create_and_wait()`. `"fara_only"` reports the entity's FARA filings as one `regulatory_disclosure_check` result without calling providers.
+- **New values:** `CheckType` adds `regulatory_disclosure_check` and `small_business_certification`. `CountryCode` adds `GB`, supported through global checks only. `CheckStatus` adds `skipped`.
+- **`vv_mcp_` API keys** pass the client-side prefix check.
+- New types: `VerificationStatus`, `OverallResult`, `VerificationResultSource`, `Monitor`, `MonitorWithSecret`, `MonitorEvent`, `MonitorFrequency`, `MonitorStatus`, `LookupIdentifierKey`, `VerifyVia`.
+
+### Changed (breaking)
+
+- **`construct_event(payload, headers, secret)`** takes the request headers mapping instead of a signature string, and verifies the `X-ETP-*` scheme above. The API does not send the `vendorval-signature` header (`t=…,v1=…`) that the previous helper expected. Pass the raw body (`bytes` or `str`) and `request.headers`; the lookup is case-insensitive.
+- **`monitors.create()`** takes `frequency` (`"daily"`, `"weekly"` or `"monthly"`) and a required `webhook_url`. `cadence` is gone.
+- **`monitors.list()`** takes only `limit` and `offset`. The API does not apply a `status` filter.
+- **`verifications.list()` is removed** from both clients. The API has no route that lists verifications, so the call could not succeed. Retrieve verifications by ID, or keep the IDs that `verifications.create()` returns.
+- **`entities.lookup()` no longer takes `legal_name`.** The API ignored it. To match on a name, pass `identifiers={"name": ...}` with `mode="fuzzy"`.
+- **The async client's `providers.list()`, `monitors.list()` and `monitors.events()` return `AsyncPage`.** Iterate with `async for` and call `await page.all()`; plain `for` no longer works on these.
+- **`IdentifierType`** no longer includes `name` and `dba`. They are lookup-only match signals; use `LookupIdentifierKey` where they are accepted.
+- **`EntityType`** is `corporation`, `llc`, `sole_proprietor`, `partnership`, `government` or `nonprofit`. The API does not return `sole_proprietorship`, `individual` or `other`.
+- **`EntityRegion`** is `north_america`, `eu` or `other` (was `european_union`). **`CountryTier`** is `full` or `global_only` (was `limited`).
+- **`Verification` and `VerificationResult`** now describe the fields the API returns. `Verification.status` uses `in_progress` and `expired` and `overall_result` adds `partial`. `Verification` gains `completed_at` and `initiated_by` and loses `updated_at` and `idempotency_key`. `VerificationResult` gains `id`, `provider_name`, `source`, `explanation`, `executed_at` and `created_at` and loses `details`.
+- **`Page.all()` and iteration cover every page,** not only the first. Use `page.data` for a single page.
+- **IDs in URL paths are percent-encoded** (`quote(id, safe="")`) everywhere, including job and usage IDs. An ID containing `/` or `?` can no longer change the request path.
+- **`entities.create()` and `monitors.create()` no longer send an `Idempotency-Key`.** The API does not deduplicate these routes, so the key had no effect.
+- **The `X-VendorVal-API-Version` header is no longer sent.** The API does not read it. `Accept-Version`, which the API does read, is still sent with the SDK's pinned API version.
+- **An explicit `api_key=""` is treated as missing** and raises `missing_api_key`. It no longer falls back to `VENDORVAL_API_KEY`. Omit `api_key` (or pass `None`) to use the environment variable.
+- **`construct_event()` raises `ValueError` for a `tolerance` or `now` that is not finite, or a negative `tolerance`.** Such values used to disable the replay check.
+
+### Documentation
+
+- **`addresses.lookup()` is no longer described as free.** API-key calls to it, to `GET /v1/entities` and to `GET /v1/entities/{id}` are metered per API request; see your plan. `addresses.suggest()` is not metered.
+
 ## 0.9.0
 
 ### Added

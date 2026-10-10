@@ -1,8 +1,9 @@
 """Addresses resource — standalone USPS verify + typeahead.
 
-Both endpoints are FREE (no per-call meter), rate-limited per tenant to align
-with USPS upstream + DB-load budgets. Use these for one-shot address
-typeahead + verification (e.g. inside an onboarding form). For audited
+``lookup()`` is metered per API request; see your plan. ``suggest()``
+(typeahead) is not metered. Both are rate-limited per tenant to align with
+USPS upstream + DB-load budgets. Use these for one-shot address typeahead +
+verification (e.g. inside an onboarding form). For audited
 verification records tied to an entity (with monitor eligibility) attach the
 address to an entity and use ``verifications.create(checks=["usps_address"])``
 instead.

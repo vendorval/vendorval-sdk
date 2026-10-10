@@ -18,8 +18,17 @@ export {
 export type { CountryErrorCode, CountryErrorDetails } from "./errors.js";
 
 export { Page } from "./pagination.js";
+export type { PageInfo } from "./pagination.js";
 export { generateIdempotencyKey } from "./idempotency.js";
-export { constructEvent } from "./webhooks.js";
+export {
+  constructEvent,
+  DEFAULT_WEBHOOK_TOLERANCE_SECONDS,
+  WEBHOOK_DELIVERY_ID_HEADER,
+  WEBHOOK_EVENT_HEADER,
+  WEBHOOK_SIGNATURE_HEADER,
+  WEBHOOK_TIMESTAMP_HEADER,
+} from "./webhooks.js";
+export type { ConstructEventOptions, WebhookHeaders } from "./webhooks.js";
 export { API_VERSION, VERSION } from "./version.js";
 
 export type { ClientOptions } from "./request.js";
@@ -32,6 +41,7 @@ export type {
   CreateMonitorRequest,
   CreateVerificationRequest,
   ListMonitorsQuery,
+  LookupEntityField,
   LookupIdentifiers,
   LookupHotPull,
   LookupRefresh,
@@ -49,6 +59,7 @@ export type {
   VerifyIdentifierObject,
   VerifyIdentifiers,
   VerifyRequest,
+  VerifyVia,
 } from "./types/api.js";
 export type {
   AddressInput,
@@ -60,6 +71,7 @@ export type {
   AddressSuggestion,
   BulkJob,
   Certification,
+  CertificationIssuerScope,
   CertificationsListParams,
   CertificationsListResponse,
   CertificationStatus,
@@ -78,9 +90,17 @@ export type {
   IdentifierInput,
   IdentifierRecord,
   IdentifierType,
+  ListEnvelope,
+  LookupIdentifierKey,
   LookupMode,
   Monitor,
   MonitorEvent,
+  MonitorFrequency,
+  MonitorStatus,
+  MonitorWithSecret,
+  MonitoringChangesDetectedData,
+  MonitoringChangesDetectedEvent,
+  OverallResult,
   Provider,
   SamRefreshMode,
   SupportedCountriesResponse,
@@ -88,6 +108,13 @@ export type {
   UsageSummary,
   Verification,
   VerificationBundle,
+  VerificationCompletedData,
+  VerificationCompletedEvent,
+  VerificationCompletedResult,
   VerificationMode,
   VerificationResult,
+  VerificationResultSource,
+  VerificationStatus,
+  WebhookChange,
+  WebhookEvent,
 } from "./types/shared.js";

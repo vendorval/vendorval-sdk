@@ -5,6 +5,7 @@ import type {
   IdentifierInput,
   IdentifierType,
   LookupMode,
+  MonitorFrequency,
   SamRefreshMode,
   VerificationMode,
 } from "./shared.js";
@@ -50,10 +51,42 @@ export interface LookupIdentifiers {
   npi?: string;
 }
 
+/**
+ * Top-level `entity` keys that `LookupRequest.fields` can select. `id` and
+ * `object` are always returned.
+ */
+export type LookupEntityField =
+  | "legal_name"
+  | "normalized_name"
+  | "dba_name"
+  | "website_url"
+  | "state_of_incorporation"
+  | "entity_type"
+  | "legal_structure"
+  | "sector"
+  | "status"
+  | "country"
+  | "confidence"
+  | "identifiers"
+  | "sam_gov"
+  | "addresses"
+  | "registrations"
+  | "sources"
+  | "field_attribution"
+  | "classifications"
+  | "regulatory_disclosures"
+  | "created_at"
+  | "updated_at";
+
 export interface LookupRequest {
+  /** To match on a name, pass `identifiers.name` (with `mode: "fuzzy"`). */
   identifiers: LookupIdentifiers;
-  legal_name?: string;
   mode?: LookupMode;
+  /**
+   * Sparse field set: return only these keys on `entity` (plus `id` and
+   * `object`). Omit for the full entity. Unknown names are rejected with 400.
+   */
+  fields?: LookupEntityField[];
   /**
    * ISO 3166-1 alpha-2 country code (e.g. "US", "DE"). Optional — when
    * omitted the API resolves it via the precedence chain
@@ -269,6 +302,14 @@ export type VerifyIdentifierObject = Omit<LookupIdentifiers, "name" | "dba">;
 // (e.g. `{ uei: "..." }`) or the legacy array of `{type, value}` pairs.
 export type VerifyIdentifiers = VerifyIdentifierObject | IdentifierInput[];
 
+/**
+ * `providers` (default) runs `checks` against the verification providers.
+ * `fara_only` skips providers and reports the entity's FARA filings as a
+ * single `regulatory_disclosure_check` result; `checks` is ignored, so pass
+ * an empty array.
+ */
+export type VerifyVia = "providers" | "fara_only";
+
 export interface VerifyRequest {
   identifiers: VerifyIdentifiers;
   legal_name?: string;
@@ -277,6 +318,7 @@ export interface VerifyRequest {
   address?: AddressInput;
   checks: CheckType[];
   mode?: VerificationMode;
+  verify_via?: VerifyVia;
   options?: {
     sync?: boolean;
     webhook_url?: string;
@@ -289,10 +331,18 @@ export interface VerifyRequest {
 export interface CreateMonitorRequest {
   entity_id: string;
   checks: CheckType[];
-  cadence: string;
+  frequency: MonitorFrequency;
+  /**
+   * HTTPS endpoint that receives this monitor's `monitoring.changes_detected`
+   * deliveries. Private, loopback and link-local addresses are rejected.
+   */
+  webhook_url: string;
 }
 
-export type ListMonitorsQuery = {
-  status?: "active" | "paused";
+/** Offset pagination for `monitors.list()` and `monitors.events()`. */
+export interface ListMonitorsQuery {
+  /** Page size, 1–100. Default 20. */
   limit?: number;
-};
+  /** Items to skip. Default 0. */
+  offset?: number;
+}

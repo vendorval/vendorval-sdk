@@ -42,7 +42,7 @@ function client(fetchMock: typeof globalThis.fetch) {
 const SAMPLE_COUNTRY: SupportedCountrySummary = {
   code: "DE",
   name: "Germany",
-  region: "european_union",
+  region: "eu",
   tier: "full",
   available_identifiers: ["vat_id", "lei", "duns", "domain", "phone"],
   available_checks: ["vat_validation", "lei_validation", "sanctions_screening"],
@@ -89,7 +89,7 @@ describe("meta resource", () => {
     const [url] = (fetchMock as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toBe("https://api.example/v1/meta/countries/DE");
     expect(de.code).toBe("DE");
-    expect(de.region).toBe("european_union");
+    expect(de.region).toBe("eu");
     expect(de.available_checks).toContain("vat_validation");
   });
 });

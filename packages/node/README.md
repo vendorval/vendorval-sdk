@@ -55,7 +55,7 @@ const client = new Vendorval({
 });
 ```
 
-API keys are prefixed `vv_test_` (sandbox) or `vv_live_` (production). The SDK validates the prefix client-side and raises `AuthenticationError` immediately on a malformed key.
+API keys are prefixed `vv_test_` (sandbox), `vv_live_` (production) or `vv_mcp_` (keys issued for MCP clients). The constructor checks the prefix and throws a `VendorvalError` with `code: "invalid_api_key_prefix"` on anything else, before any request is sent.
 
 ## Errors
 
@@ -84,23 +84,47 @@ try {
 
 ## Pagination
 
-`list` methods return an `AsyncIterable` so iteration stays source-compatible when cursor pagination ships:
+List methods return a `Page`. Iterating it with `for await` walks every page: while the API reports `has_more`, the SDK requests the next page at the following offset.
 
 ```ts
-for await (const monitor of client.monitors.list()) {
+for await (const monitor of await client.monitors.list({ limit: 50 })) {
   console.log(monitor.id);
 }
+
+// Or collect every item into an array.
+const monitors = await (await client.monitors.list()).all();
 ```
 
-Materialize with `await client.monitors.list().all()` if you want an array.
+For one page at a time, read `page.data` and `page.hasMore`, and call `page.nextPage()` (it returns `null` after the last page).
 
-## Webhooks
+## Monitors and webhooks
+
+A monitor re-runs checks on an entity at a fixed frequency and POSTs each detected change to its `webhook_url`. Every monitor has its own signing secret, returned once when the monitor is created:
 
 ```ts
-const event = client.webhooks.constructEvent(rawBody, signatureHeader, secret);
+const monitor = await client.monitors.create({
+  entity_id: "ent_123",
+  checks: ["sam_exclusion", "sanctions_screening"],
+  frequency: "daily", // "daily" | "weekly" | "monthly"
+  webhook_url: "https://example.com/webhooks/vendorval",
+});
+// Store this. It is not returned again; client.monitors.rotateSecret(id) issues a new one.
+saveSecret(monitor.id, monitor.webhook_secret);
 ```
 
-Pass the original raw request body and signature header to the verifier. This helper validates incoming events; it does not configure a webhook endpoint or enable delivery. Follow the API documentation for subscription and delivery setup.
+Verify each delivery with `constructEvent`, passing the raw request body, the request headers and that monitor's secret:
+
+```ts
+import { constructEvent, WEBHOOK_DELIVERY_ID_HEADER } from "vendorval-sdk";
+
+// Express: app.post("/webhooks/vendorval", express.raw({ type: "application/json" }), handler)
+const event = constructEvent(req.body, req.headers, secret);
+const deliveryId = req.get(WEBHOOK_DELIVERY_ID_HEADER);
+```
+
+`constructEvent` checks the `X-ETP-Signature` header (`sha256=<hex>`, an HMAC-SHA256 of `<X-ETP-Timestamp>.<raw body>`) in constant time, and rejects deliveries whose `X-ETP-Timestamp` is more than 300 seconds from now (`{ tolerance }` changes that). It throws a `VendorvalError` with `type: "webhook_error"` on any failure. Use the raw body: re-serializing parsed JSON changes the bytes and the signature will not match.
+
+Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id`, so record it and ignore repeats. Each `monitoring.changes_detected` delivery carries one change in `event.data.changes`, and `event.data.monitor_id` tells you which monitor's secret to use.
 
 ## Logging the request id
 
@@ -117,7 +141,7 @@ try {
 
 ## Versioning
 
-The SDK pins to API version `v1`. The current API-version header sent on every request is exposed as `Vendorval.API_VERSION`.
+The SDK calls the `v1` API and sends `Accept-Version: <date>` on every request so a given SDK release keeps receiving the response shapes it was built for. The date is exposed as `Vendorval.API_VERSION`.
 
 ## License
 
