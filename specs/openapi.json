@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "vendorval API",
-    "description": "API-first entity lookup and verification. See /v1/docs for the interactive spec and /v1/openapi.json for the raw OpenAPI document. All routes except GET /v1/health require a bearer token.",
+    "description": "API-first entity lookup and verification. See /v1/docs for the interactive spec and /v1/openapi.json for the raw OpenAPI document. Most routes require a bearer token (an API key, or a dashboard session token on account routes). The health checks, these docs, the legal documents, /v1/meta/* and /v1/invitations/preview are public.",
     "version": "1.0.0"
   },
   "components": {
@@ -62,11 +62,11 @@
     },
     "/v1/health/detail": {
       "get": {
-        "summary": "Deep dependency health",
+        "summary": "Deep dependency health (VendorVal staff only)",
         "tags": [
           "Health"
         ],
-        "description": "Requires authentication. Reports live DB and provider status; returns 503 when degraded.",
+        "description": "Requires a VendorVal staff (superadmin) dashboard session; API keys and customer roles get 403. Reports live DB and provider status; returns 503 when degraded.",
         "responses": {
           "200": {
             "description": "Default Response"
@@ -76,11 +76,11 @@
     },
     "/v1/health/email": {
       "get": {
-        "summary": "Invitation-email pipeline diagnostic",
+        "summary": "Invitation-email pipeline diagnostic (VendorVal staff only)",
         "tags": [
           "Health"
         ],
-        "description": "Authenticated. Validates RESEND_API_KEY against Resend, confirms EMAIL_FROM domain is verified, and reports pgboss queue state. Never returns the secret value.",
+        "description": "Requires a VendorVal staff (superadmin) dashboard session; API keys and customer roles get 403. Validates RESEND_API_KEY against Resend, confirms EMAIL_FROM domain is verified, and reports pgboss queue state. Never returns the secret value.",
         "responses": {
           "200": {
             "description": "Default Response"
@@ -358,7 +358,7 @@
         "tags": [
           "Entities"
         ],
-        "description": "Read-only. Accepts a flat identifier object. Exact mode returns the strongest single match; fuzzy mode returns ranked candidates with confidence scores. Never creates entities. Set options.sam_refresh to control live SAM.gov fetching (auto | force | never). Country is resolved automatically from the strongest identifier (vat_id prefix, US-only ids imply US, …) or from the org default. `country` may be supplied explicitly to bypass inference, but it must agree with any country implied by an identifier — a conflict returns `country_mismatch` (422), it is not a silent override.",
+        "description": "Read-only. Accepts a flat identifier object. Exact mode returns the strongest single match; fuzzy mode returns ranked candidates with confidence scores. Never creates entities. Set options.sam_refresh to control live SAM.gov fetching (auto | force | never). Country is resolved automatically from the strongest identifier (vat_id prefix, US-only ids imply US, …) or from the org default. `country` may be supplied explicitly to bypass inference, but it must agree with any country implied by an identifier — a conflict returns `country_mismatch` (422), it is not a silent override. The response carries a top-level `livemode` boolean; with a sandbox test key (`livemode: false`; a `vv_test_` key created after the sandbox launched, older test keys behave as live keys) the lookup reads existing data only: no live SAM.gov refresh and no hot pull.",
         "requestBody": {
           "required": true,
           "content": {
@@ -681,7 +681,7 @@
         "tags": [
           "Entities"
         ],
-        "description": "Phase T1.4b/2b slice 1 — submissions are staged in `customer.entity_candidates` and processed asynchronously by the authoritative-check loop (SAM by UEI, GLEIF by LEI, VIES by VAT-ID, …). Returns 202 with a `candidate_id`; poll `GET /v1/entities/candidates/:id` for status. Customer-supplied data NEVER lands in canonical gold directly — only the authoritative-check loop can promote a candidate via the same reconciler path everything else uses. For customer entity lookups, use `POST /v1/entities/lookup` (which hot-pulls fresh authoritative data from SAM on cache miss). Requires the `internal:entities:write` scope (or wildcard `*`) on the API key.",
+        "description": "Phase T1.4b/2b slice 1 — submissions are staged in `customer.entity_candidates` and processed asynchronously by the authoritative-check loop (SAM by UEI, GLEIF by LEI, VIES by VAT-ID, …). Returns 202 with a `candidate_id`; poll `GET /v1/entities/candidates/:id` for status. Customer-supplied data NEVER lands in canonical gold directly — only the authoritative-check loop can promote a candidate via the same reconciler path everything else uses. For customer entity lookups, use `POST /v1/entities/lookup` (which hot-pulls fresh authoritative data from SAM on cache miss). Requires an API key that lists the `internal:entities:write` scope explicitly; the wildcard `*` and dashboard roles do not grant it.",
         "requestBody": {
           "required": true,
           "content": {
@@ -802,6 +802,7 @@
         "tags": [
           "Entities"
         ],
+        "description": "Searches canonical entities. Metered: each call by an API key counts as one billable call; searches from the dashboard are free. For name typeahead use the free `GET /v1/entities/suggest`.",
         "parameters": [
           {
             "schema": {
@@ -1056,7 +1057,7 @@
         "tags": [
           "Entities"
         ],
-        "description": "Full canonical record across all data sources for the entity — identifiers, addresses, exclusions, classifications, regulatory disclosures, certifications, registrations, and per-source frozen blocks (`sources.{name}`). One round-trip for the connected-fabric profile view. Use the source-blocks key to render per-authority detail panels.",
+        "description": "Full canonical record across all data sources for the entity — identifiers, addresses, exclusions, classifications, regulatory disclosures, certifications, registrations, and per-source frozen blocks (`sources.{name}`). One round-trip for the connected-fabric profile view. Use the source-blocks key to render per-authority detail panels. Metered: each call by an API key counts as one billable call; the dashboard's profile view is free.",
         "parameters": [
           {
             "schema": {
@@ -1081,7 +1082,7 @@
         "tags": [
           "Addresses"
         ],
-        "description": "Free to call. Always-fresh USPS call — no cache hit on this slice. For audited verification records (with a verification_id + monitor eligibility) attach the address to an entity and use POST /v1/verify with the `usps_address` check instead. Per-tenant rate limiting (matching the USPS upstream 60/min cap) lands in Phase S3.2 alongside the background sweep.",
+        "description": "Metered: each call by an API key counts as one billable call; calls from the dashboard are free. Always-fresh USPS call — no cache hit on this slice. For audited verification records (with a verification_id + monitor eligibility) attach the address to an entity and use POST /v1/verify with the `usps_address` check instead. Per-tenant rate limiting (matching the USPS upstream 60/min cap) lands in Phase S3.2 alongside the background sweep.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1285,7 +1286,7 @@
         "tags": [
           "Verifications"
         ],
-        "description": "Returns 200 with completed result when options.sync = true; otherwise returns 202 and runs the verification asynchronously.",
+        "description": "Returns 200 with completed result when options.sync = true; otherwise returns 202 and runs the verification asynchronously. The response carries a top-level `livemode` boolean; with a sandbox test key (a `vv_test_` key created after the sandbox launched, older test keys behave as live keys) the checks run in the sandbox (`livemode: false`): simulated results, no live source called, no entity data written.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1332,6 +1333,7 @@
                         "type": "boolean"
                       },
                       "webhook_url": {
+                        "description": "HTTPS URL that receives a signed `verification.completed` webhook. Deliveries are signed with your organization's webhook secret (`X-ETP-Signature: sha256=<hex>` over `<X-ETP-Timestamp>.<raw body>`). The first request that sets `webhook_url` for an organization returns that secret once, as a top-level `webhook_secret` field; replace it with `POST /v1/orgs/{orgId}/webhook-secret/rotate`.",
                         "type": "string",
                         "format": "uri"
                       },
@@ -1387,7 +1389,7 @@
         "tags": [
           "Verifications"
         ],
-        "description": "Convenience endpoint: looks up an entity by the supplied identifiers, runs the requested checks, and — when no entity matched — auto-creates the canonical entity if an identity-confirming authoritative check (tin_match / sam_registration / uei_validation / lei_validation) returns a definitive `pass`. If no such pass occurs the response carries the check results with `entity: null` and `entity_created: false` (nothing is written). `options.create_if_not_found` is no longer required; set it to force-create a customer-asserted entity without an authoritative pass (legacy/back-compat). **Synchronous by default** — the response carries fully-resolved per-check statuses. Pass `options: { sync: false }` to queue the verification asynchronously and poll `GET /v1/verifications/:id`. Accepts `identifiers` either as an object keyed by type (recommended, e.g. `{ \"uei\": \"...\" }`) or as a legacy array of `{ type, value }` pairs.",
+        "description": "Convenience endpoint: looks up an entity by the supplied identifiers, runs the requested checks, and — when no entity matched — auto-creates the canonical entity if an identity-confirming authoritative check (tin_match / sam_registration / uei_validation / lei_validation) returns a definitive `pass`. If no such pass occurs the response carries the check results with `entity: null` and `entity_created: false` (nothing is written). `options.create_if_not_found` is no longer required; set it to force-create a customer-asserted entity without an authoritative pass (legacy/back-compat). **Synchronous by default** — the response carries fully-resolved per-check statuses. Pass `options: { sync: false }` to queue the verification asynchronously and poll `GET /v1/verifications/:id`. Accepts `identifiers` either as an object keyed by type (recommended, e.g. `{ \"uei\": \"...\" }`) or as a legacy array of `{ type, value }` pairs. Every response carries a top-level `livemode` boolean: requests made with a sandbox test key (a `vv_test_` key created after the sandbox launched; older test keys behave as live keys) run in the sandbox (`livemode: false`), where every check is answered by a deterministic simulated provider, no live source is called, and no entity is created or updated.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1615,6 +1617,7 @@
                         "type": "boolean"
                       },
                       "webhook_url": {
+                        "description": "HTTPS URL that receives a signed `verification.completed` webhook. Deliveries are signed with your organization's webhook secret (`X-ETP-Signature: sha256=<hex>` over `<X-ETP-Timestamp>.<raw body>`). The first request that sets `webhook_url` for an organization returns that secret once, as a top-level `webhook_secret` field; replace it with `POST /v1/orgs/{orgId}/webhook-secret/rotate`.",
                         "type": "string",
                         "format": "uri"
                       },
@@ -1709,6 +1712,7 @@
                     "type": "object",
                     "properties": {
                       "webhook_url": {
+                        "description": "HTTPS URL that receives a signed `verification.completed` webhook. Deliveries are signed with your organization's webhook secret (`X-ETP-Signature: sha256=<hex>` over `<X-ETP-Timestamp>.<raw body>`). The first request that sets `webhook_url` for an organization returns that secret once, as a top-level `webhook_secret` field; replace it with `POST /v1/orgs/{orgId}/webhook-secret/rotate`.",
                         "type": "string",
                         "format": "uri"
                       },
@@ -2859,6 +2863,31 @@
         }
       }
     },
+    "/v1/orgs/{orgId}/webhook-secret/rotate": {
+      "post": {
+        "summary": "Rotate the organization's webhook signing secret",
+        "tags": [
+          "Organizations"
+        ],
+        "description": "Issues a new signing secret for `verification.completed` webhooks (from /v1/verify, /v1/verifications and bulk jobs) and returns it once as `webhook_secret`. The previous secret stops signing deliveries immediately. Creates the secret if the organization has none yet. Monitor webhooks use their own per-monitor secret.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "orgId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/v1/orgs/{orgId}/audit-log": {
       "get": {
         "summary": "List audit-log events for an organization",
@@ -3161,7 +3190,21 @@
         "tags": [
           "Billing"
         ],
-        "description": "Member-accessible entitlement check for the docs.vendorval.com softwall. `subscribed` is true when the org has a subscription in an active / trialing / past_due state. No free plan exists, so any such subscription is a paid one. Unlike /v1/billing/subscription (owner/admin only), any org member may call this.",
+        "description": "Member-accessible entitlement check for the docs.vendorval.com softwall. `subscribed` is true when the org has a subscription in an active / trialing / past_due state. No free plan exists, so any such subscription is a paid one. Any org member may call this, whatever their role.",
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/v1/billing/plans": {
+      "get": {
+        "summary": "List the self-serve plans",
+        "tags": [
+          "Billing"
+        ],
+        "description": "Returns the self-serve plans, cheapest first: price, rate limit, overage rate and included verifications per billing period (`null` when not set). Custom enterprise plans are not listed. Pass a plan `name` to POST /v1/billing/checkout-session as `plan_name`.",
         "responses": {
           "200": {
             "description": "Default Response"
