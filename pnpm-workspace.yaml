@@ -3,14 +3,24 @@ packages:
   - "examples/node/*"
 
 # Security pins for transitive dev/test tooling (no runtime deps are shipped).
-# - vite: keep on the patched 6.x line; 7.x drops Node 18 support which CI still
-#   builds against. 6.4.3 patches the path-traversal / fs.deny advisories.
+#
+# vite is NOT pinned here — see the root package.json devDependency instead.
+# An override does not move it: vite reaches us as vitest's auto-installed
+# PEER, and pnpm 10 writes the override into the lockfile and then declines to
+# satisfy it, reporting `unmet peer vite@<range>: found <older>`. Declaring it
+# as a direct devDependency is what actually moves it. Nothing in this repo
+# imports vite, so do not delete that dependency as unused — removing it drops
+# resolution back to the vulnerable version with no other signal.
+#
 # - esbuild under tsup: lift to the patched 0.28.x line (tsup ships 0.27.x).
 # - nanoid / postcss: transitive under vite's dev pipeline; both pinned below
 #   their patched release by parent ranges, so they need an override rather
 #   than a bump. Bounded to their current major.
 overrides:
-  vite: "^6.4.3"
   tsup>esbuild: "^0.28.1"
   nanoid: ">=3.3.18 <4"
   postcss: ">=8.5.18 <9"
+  # brace-expansion arrives as eslint>minimatch>brace-expansion, pinned below
+  # its patched release by minimatch's range. The 5.x copy in the tree is
+  # already fine; only the 1.x line needs lifting. Bounded to its major.
+  "brace-expansion@<2": ">=1.1.21 <2"
