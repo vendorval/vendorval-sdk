@@ -27,6 +27,7 @@ This release brings the SDK in line with the API's current request and response 
 
 ### Changed (breaking)
 
+- **Python 3.11 is now the minimum.** `requires-python` moved from `>=3.9` to `>=3.11`, so `pip install -U vendorval-sdk` on Python 3.9 or 3.10 resolves to 0.8.0 instead of failing with a clear message. Both are past end-of-life (3.9 in October 2025, 3.10 in October 2026). Upgrade the interpreter first; 0.8.0 remains installable on 3.9+ if you cannot.
 - **`construct_event(payload, headers, secret)`** takes the request headers mapping instead of a signature string, and verifies the `X-ETP-*` scheme above. The API does not send the `vendorval-signature` header (`t=…,v1=…`) that the previous helper expected. Pass the raw body (`bytes` or `str`) and `request.headers`; the lookup is case-insensitive.
 - **`monitors.create()`** takes `frequency` (`"daily"`, `"weekly"` or `"monthly"`) and a required `webhook_url`. `cadence` is gone.
 - **`monitors.list()`** takes only `limit` and `offset`. The API does not apply a `status` filter.
