@@ -26,6 +26,7 @@ This release brings the SDK in line with the API's current request and response 
 
 ### Changed (breaking)
 
+- **Node 20 is now the minimum.** `engines.node` moved from `>=18` to `>=20`. npm warns rather than fails on an `engines` mismatch, so an install on Node 18 appears to succeed and then breaks at runtime. Node 18 left support in April 2025. Upgrade the runtime; 0.8.0 remains installable on Node 18 if you cannot.
 - **`constructEvent(payload, headers, secret)`** takes the request headers instead of a signature string, and verifies the `X-ETP-*` scheme above. The API does not send the `vendorval-signature` header (`t=…,v1=…`) that the previous helper expected. Pass the raw body (string or `Buffer`) and `req.headers`, or a `Headers` object.
 - **`monitors.create()`** takes `frequency` (`"daily"`, `"weekly"` or `"monthly"`) and a required `webhook_url`. `cadence` is gone.
 - **`monitors.list()`** takes only `{ limit, offset }`. The API does not apply a `status` filter.
