@@ -21,3 +21,8 @@ overrides:
   # its patched release by minimatch's range. The 5.x copy in the tree is
   # already fine; only the 1.x line needs lifting. Bounded to its major.
   "brace-expansion@<2": ">=1.1.21 <2"
+
+# pnpm 10 does not run dependency install scripts unless they are listed here.
+# esbuild (used by tsup and vitest) checks its platform binary on install.
+onlyBuiltDependencies:
+  - esbuild

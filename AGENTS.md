@@ -23,7 +23,7 @@ scripts/            Spec-sync + type-parity helpers
 
 ## Working on the Node SDK
 
-Requires Node >=20 and pnpm 10; CI covers Node 20, 22, and 24.
+Develop on Node 24.18.0 and pnpm 10.30.3 (pinned in `.nvmrc`, `.node-version` and the root `packageManager`; the private root also declares `engines.node` `>=24.18.0 <25`). The published package keeps `engines.node` `>=20`; CI covers Node 20, 22 and 24.18.0.
 
 ```bash
 pnpm install

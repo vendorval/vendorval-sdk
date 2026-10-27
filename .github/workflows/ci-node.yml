@@ -27,11 +27,14 @@ jobs:
       matrix:
         node-version: ["20", "22", "24"]
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ matrix.node-version }}
+          # The "24" leg runs the repo's pinned toolchain (.nvmrc, 24.18.0);
+          # 20 and 22 cover the published package's engines (>=20). The matrix
+          # key stays "24" because `test (24)` is a required status check.
+          node-version: ${{ matrix.node-version == '24' && '24.18.0' || matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter vendorval-sdk typecheck

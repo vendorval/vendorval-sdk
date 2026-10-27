@@ -60,7 +60,7 @@ vendorval-sdk/
 
 ## Development
 
-Node SDK: Node >=20 and pnpm 10. Python SDK: Python >=3.11 and uv. Set `VENDORVAL_API_KEY` before making API calls; example identifiers are placeholders.
+Node SDK: develop on Node 24.18.0 and pnpm 10.30.3 (`.nvmrc`, `.node-version`, `packageManager`); the published package supports Node >=20. Python SDK: Python >=3.11 and uv. Set `VENDORVAL_API_KEY` before making API calls; example identifiers are placeholders.
 
 ```bash
 pnpm install
