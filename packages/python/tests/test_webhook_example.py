@@ -35,3 +35,14 @@ def test_only_completed_handling_is_recorded() -> None:
     assert not cache.is_duplicate("sha256=aaa", None, b"payload-a")
     cache.record("sha256=aaa", None, b"payload-a")
     assert cache.is_duplicate("SHA256=AAA", None, b"payload-a")
+
+
+def test_missing_id_does_not_match_a_recorded_empty_id() -> None:
+    cache = DeliveryCache()
+    body = b"payload-a"
+    cache.record("sha256=aaa", "", body)
+    assert not cache.is_duplicate("sha256=bbb", None, body)
+    # A missing-ID attempt must not mark its unhandled signature as processed.
+    assert not cache.is_duplicate("sha256=bbb", "delivery-b", body)
+    # An explicitly present empty ID still supports a matching authenticated retry.
+    assert cache.is_duplicate("sha256=ccc", "", body)
