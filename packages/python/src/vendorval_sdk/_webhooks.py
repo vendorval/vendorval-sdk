@@ -27,7 +27,7 @@ WEBHOOK_SIGNATURE_HEADER = "x-etp-signature"
 #: Unix time in seconds when the delivery was signed. Part of the signed string.
 WEBHOOK_TIMESTAMP_HEADER = "x-etp-timestamp"
 #: Stable per logical delivery; retries reuse it. It is not covered by the
-#: signature, so drop duplicates on this and ``X-ETP-Signature`` together.
+#: signature: bind this id to the verified body digest before treating a retry as processed.
 WEBHOOK_DELIVERY_ID_HEADER = "x-etp-delivery-id"
 #: The event name, e.g. ``monitoring.changes_detected``.
 WEBHOOK_EVENT_HEADER = "x-etp-event"
@@ -61,9 +61,9 @@ def construct_event(
         now: Current Unix time in seconds. For tests.
 
     Deliveries are at-least-once. Retries reuse ``X-ETP-Delivery-Id`` but are
-    signed again, and the delivery id is not covered by the signature, so treat
-    a delivery as a repeat if its ``X-ETP-Delivery-Id`` or its
-    ``X-ETP-Signature`` has been seen.
+    signed again. Cache processed signatures in lowercase. Because the delivery id
+    is unsigned, a retry is processed only if its id and verified body digest
+    match a completed delivery; then cache its new signature too.
 
     Raises:
         VendorvalError: ``type="webhook_error"`` with one of the codes
