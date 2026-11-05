@@ -19,13 +19,13 @@ jobs:
       contents: read
       id-token: write # required for npm Trusted Publishing (OIDC) + provenance
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       # Node 24 ships with npm >= 11, which is required for Trusted Publishing
       # OIDC token exchange. Avoids the npm self-upgrade race that bites Node 22.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
@@ -39,9 +39,15 @@ jobs:
 
       - name: Resolve dist-tag
         id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ ! "${INPUT_TAG}" =~ ^[a-z][a-z0-9.-]*$ ]]; then
+              echo "::error::dist-tag must match ^[a-z][a-z0-9.-]*$"
+              exit 1
+            fi
+            echo "value=${INPUT_TAG}" >> "$GITHUB_OUTPUT"
           elif [[ "${GITHUB_REF_NAME}" == *"-rc."* || "${GITHUB_REF_NAME}" == *"-beta."* ]]; then
             echo "value=next" >> "$GITHUB_OUTPUT"
           else
@@ -59,9 +65,11 @@ jobs:
       # supplies the publish credential via OIDC — no NPM_TOKEN needed.
       - name: Publish to npm (OIDC)
         working-directory: packages/node
+        env:
+          DIST_TAG: ${{ steps.tag.outputs.value }}
         run: |
-          echo "Publishing with dist-tag: ${{ steps.tag.outputs.value }}"
+          echo "Publishing with dist-tag: ${DIST_TAG}"
           npm publish \
             --access public \
             --provenance \
-            --tag "${{ steps.tag.outputs.value }}"
+            --tag "${DIST_TAG}"
