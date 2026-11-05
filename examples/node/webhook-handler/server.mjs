@@ -26,7 +26,8 @@ const MAX_BYTES = 1024 * 1024; // 1MB cap on webhook bodies; reject anything lar
 
 // Deliveries are at-least-once. Retries reuse the delivery id but are signed
 // again, and the delivery id is not covered by the signature, so remember both
-// and treat a match on either as a repeat. Keep this in durable storage in
+// and treat a match on either as a repeat. Signatures are stored in lowercase
+// because constructEvent() accepts either case. Keep this in durable storage in
 // production.
 const seen = new Set();
 
@@ -86,11 +87,11 @@ const server = createServer((req, res) => {
       return;
     }
 
-    const dedupeKeys = [
-      req.headers[WEBHOOK_DELIVERY_ID_HEADER],
-      req.headers[WEBHOOK_SIGNATURE_HEADER],
-    ].filter((value) => typeof value === "string");
-    if (dedupeKeys.some((key) => seen.has(key))) {
+    const deliveryId = req.headers[WEBHOOK_DELIVERY_ID_HEADER];
+    const signature = String(req.headers[WEBHOOK_SIGNATURE_HEADER]).trim().toLowerCase();
+    if (seen.has(signature) || (typeof deliveryId === "string" && seen.has(deliveryId))) {
+      // A retry is signed again, so its signature may be new.
+      seen.add(signature);
       res.statusCode = 200;
       res.end("duplicate");
       return;
@@ -109,7 +110,8 @@ const server = createServer((req, res) => {
       console.log("received event", event.event);
     }
     // Record these only once handling succeeded, so a failed delivery is retried.
-    for (const key of dedupeKeys) seen.add(key);
+    seen.add(signature);
+    if (typeof deliveryId === "string") seen.add(deliveryId);
     res.statusCode = 200;
     res.end("ok");
   });

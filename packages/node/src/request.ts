@@ -204,11 +204,13 @@ export async function performRequest<T>(
       }
     }
 
+    // Read once, so redaction below matches the key this attempt sent.
+    const apiKey = client.apiKey;
     let response: Response;
     try {
       response = await client.fetch(url, {
         method: options.method,
-        headers: buildHeaders(client.apiKey, options),
+        headers: buildHeaders(apiKey, options),
         body: serializeBody(bodyForSend, options.method),
         signal: controller.signal,
       });
@@ -223,7 +225,7 @@ export async function performRequest<T>(
         lastError = new APITimeoutError(timeout);
       } else {
         lastError = new APIConnectionError(
-          err instanceof Error ? redactKey(err.message, client.apiKey) : "Network error",
+          err instanceof Error ? redactKey(err.message, apiKey) : "Network error",
         );
       }
       if (attempt >= maxRetries) throw lastError;

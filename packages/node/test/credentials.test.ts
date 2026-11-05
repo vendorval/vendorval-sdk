@@ -70,6 +70,19 @@ describe("API key handling", () => {
     });
   });
 
+  it("redacts the key a request sent, even if options.apiKey changed meanwhile", async () => {
+    const client = new Vendorval({
+      apiKey: KEY,
+      maxRetries: 0,
+      fetch: async () => {
+        client.options.apiKey = "vv_test_ROTATED";
+        throw new TypeError(`rejected header value "Bearer ${KEY}"`);
+      },
+    });
+    const err = await client.certifications.list().catch((e: unknown) => e);
+    expect((err as Error).message).not.toContain(KEY);
+  });
+
   describe("key format", () => {
     it.each([
       ["validated", true],

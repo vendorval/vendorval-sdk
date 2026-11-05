@@ -43,8 +43,8 @@ jobs:
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            if [[ ! "${INPUT_TAG}" =~ ^[a-z][a-z0-9.-]*$ ]]; then
-              echo "::error::dist-tag must match ^[a-z][a-z0-9.-]*$"
+            if [[ ! "${INPUT_TAG}" =~ ^[a-z][a-z0-9._-]*$ ]]; then
+              echo "::error::dist-tag must match ^[a-z][a-z0-9._-]*$"
               exit 1
             fi
             echo "value=${INPUT_TAG}" >> "$GITHUB_OUTPUT"

@@ -28,21 +28,19 @@ const indentOf = (line) => line.length - line.trimStart().length;
 function check(path) {
   const problems = [];
   const lines = readFileSync(path, "utf8").split("\n");
-  let runIndent = null; // Indent of the `run:` line while inside its script.
+  let runIndent = null; // Column of the `run` key while inside its script.
 
   lines.forEach((line, index) => {
     const where = `${relative(root, path)}:${index + 1}`;
     if (runIndent !== null && line.trim() !== "" && indentOf(line) <= runIndent) runIndent = null;
 
-    const run = /^(\s*)(?:- )?run:(.*)$/.exec(line);
-    if (run) {
-      runIndent = run[1].length;
-    }
+    const run = /^(\s*(?:-\s+)?)run\s*:/.exec(line);
+    if (run) runIndent = run[1].length;
     if (runIndent !== null && line.includes("${{")) {
       problems.push(`${where}: expression inside a run script; pass it through env`);
     }
 
-    const uses = /^\s*(?:- )?uses:\s*["']?([^"'\s#]+)/.exec(line);
+    const uses = /^\s*(?:-\s+)?uses\s*:\s*["']?([^"'\s#]+)/.exec(line);
     if (uses && !uses[1].startsWith("./") && !/@[0-9a-f]{40}$/.test(uses[1])) {
       problems.push(`${where}: ${uses[1]} is not pinned to a full commit SHA`);
     }

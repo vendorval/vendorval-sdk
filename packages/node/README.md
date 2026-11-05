@@ -129,7 +129,7 @@ const signature = req.get(WEBHOOK_SIGNATURE_HEADER);
 
 `constructEvent` checks the `X-ETP-Signature` header (`sha256=<hex>`, an HMAC-SHA256 of `<X-ETP-Timestamp>.<raw body>`) in constant time, and rejects deliveries whose `X-ETP-Timestamp` is more than 300 seconds from now (`{ tolerance }` changes that). It throws a `VendorvalError` with `type: "webhook_error"` on any failure. Use the raw body: re-serializing parsed JSON changes the bytes and the signature will not match.
 
-Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id` but are signed again, and the delivery id is not covered by the signature. Record both `X-ETP-Delivery-Id` and `X-ETP-Signature`, and treat a delivery as a repeat if either has been seen, for at least 24 hours. Each `monitoring.changes_detected` delivery carries one change in `event.data.changes`, and `event.data.monitor_id` tells you which monitor's secret to use.
+Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id` but are signed again, and the delivery id is not covered by the signature. Treat a delivery as a repeat if its delivery id or its `X-ETP-Signature`, compared in lowercase, has been seen in the last 24 hours, and record the signature of every verified delivery, repeats included. Each `monitoring.changes_detected` delivery carries one change in `event.data.changes`, and `event.data.monitor_id` tells you which monitor's secret to use.
 
 ## Logging the request id
 

@@ -63,8 +63,9 @@ def main() -> None:
     secrets = _load_secrets()
     # Deliveries are at-least-once. Retries reuse the delivery id but are signed
     # again, and the delivery id is not covered by the signature, so remember
-    # both and treat a match on either as a repeat. Keep this in durable storage
-    # in production.
+    # both and treat a match on either as a repeat. Signatures are stored in
+    # lowercase because construct_event() accepts either case. Keep this in
+    # durable storage in production.
     seen: set[str] = set()
     app = Flask(__name__)
 
@@ -82,15 +83,11 @@ def main() -> None:
             print("invalid webhook:", err.code)
             return "invalid", 400
 
-        dedupe_keys = {
-            value
-            for value in (
-                request.headers.get(WEBHOOK_DELIVERY_ID_HEADER),
-                request.headers.get(WEBHOOK_SIGNATURE_HEADER),
-            )
-            if value is not None
-        }
-        if dedupe_keys & seen:
+        delivery_id = request.headers.get(WEBHOOK_DELIVERY_ID_HEADER)
+        signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER, "").strip().lower()
+        if signature in seen or (delivery_id is not None and delivery_id in seen):
+            # A retry is signed again, so its signature may be new.
+            seen.add(signature)
             return "duplicate", 200
 
         if event["event"] == "monitoring.changes_detected":
@@ -105,7 +102,9 @@ def main() -> None:
         else:
             print("received event", event["event"])
         # Record these only once handling succeeded, so a failed delivery is retried.
-        seen.update(dedupe_keys)
+        seen.add(signature)
+        if delivery_id is not None:
+            seen.add(delivery_id)
         return "ok", 200
 
     app.run(port=8787)

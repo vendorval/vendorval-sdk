@@ -14,7 +14,7 @@
 
 ### Documentation
 
-- **Webhook repeats:** record both `X-ETP-Delivery-Id` and `X-ETP-Signature`, and treat a match on either as a repeat. The README and the example handler now do this.
+- **Webhook repeats:** treat a delivery as a repeat if its `X-ETP-Delivery-Id` or its lowercased `X-ETP-Signature` has been seen. The README and the example handler now do this.
 
 ## 0.10.0
 
