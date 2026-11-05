@@ -27,7 +27,8 @@ const MAX_BYTES = 1024 * 1024; // 1MB cap on webhook bodies; reject anything lar
 
 // Deliveries are at-least-once. Retries reuse the delivery id but are signed
 // again, and the delivery id is not covered by the signature, so remember both
-// and treat a match on either as a repeat. Signatures are stored in lowercase
+// and bind each delivery id to the authenticated body digest. A reused id with
+// a different body must not suppress a new event. Signatures are stored in lowercase
 // because constructEvent() accepts either case. Keep this in durable storage in
 // production.
 const cache = new DeliveryCache();

@@ -65,7 +65,8 @@ def main() -> None:
     secrets = _load_secrets()
     # Deliveries are at-least-once. Retries reuse the delivery id but are signed
     # again, and the delivery id is not covered by the signature, so remember
-    # both and treat a match on either as a repeat. Signatures are stored in
+    # both and bind each delivery id to the authenticated body digest. A reused
+    # id with a different body must not suppress a new event. Signatures are stored in
     # lowercase because construct_event() accepts either case. Keep this in
     # durable storage in production.
     cache = DeliveryCache()
