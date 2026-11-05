@@ -1,8 +1,8 @@
 # vendorval-sdk (Python)
 
-## Unreleased
+## 0.11.0
 
-### Changed
+### Changed (breaking)
 
 - **Plain `http://` base URLs are refused for hosts other than localhost.** The API key is sent with every request, so the constructor now raises a `VendorvalError` with code `insecure_base_url`. `https://` URLs and `http://` on `localhost`, `*.localhost`, loopback IPs and `[::1]` work as before. For a trusted private network, pass the new `allow_insecure_base_url=True` argument.
 - **A key with control characters inside it raises at construction** with code `invalid_api_key_format`, even with `validate_api_key=False`.
