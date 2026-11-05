@@ -26,7 +26,8 @@ from .types import WebhookEvent
 WEBHOOK_SIGNATURE_HEADER = "x-etp-signature"
 #: Unix time in seconds when the delivery was signed. Part of the signed string.
 WEBHOOK_TIMESTAMP_HEADER = "x-etp-timestamp"
-#: Stable per logical delivery; retries reuse it. Use it to drop duplicates.
+#: Stable per logical delivery; retries reuse it. It is not covered by the
+#: signature, so drop duplicates on this and ``X-ETP-Signature`` together.
 WEBHOOK_DELIVERY_ID_HEADER = "x-etp-delivery-id"
 #: The event name, e.g. ``monitoring.changes_detected``.
 WEBHOOK_EVENT_HEADER = "x-etp-event"
@@ -59,8 +60,10 @@ def construct_event(
             seconds from now. Default 300. This stops replayed deliveries.
         now: Current Unix time in seconds. For tests.
 
-    Deliveries are at-least-once: use the ``X-ETP-Delivery-Id`` header to
-    ignore repeats.
+    Deliveries are at-least-once. Retries reuse ``X-ETP-Delivery-Id`` but are
+    signed again, and the delivery id is not covered by the signature, so treat
+    a delivery as a repeat if its ``X-ETP-Delivery-Id`` or its
+    ``X-ETP-Signature`` has been seen.
 
     Raises:
         VendorvalError: ``type="webhook_error"`` with one of the codes

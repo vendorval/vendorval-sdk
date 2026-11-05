@@ -7,7 +7,10 @@ import type { WebhookEvent } from "./types/shared.js";
 export const WEBHOOK_SIGNATURE_HEADER = "x-etp-signature";
 /** Unix time in seconds when the delivery was signed. Part of the signed string. */
 export const WEBHOOK_TIMESTAMP_HEADER = "x-etp-timestamp";
-/** Stable per logical delivery; retries reuse it. Use it to drop duplicates. */
+/**
+ * Stable per logical delivery; retries reuse it. It is not covered by the
+ * signature, so drop duplicates on this and `X-ETP-Signature` together.
+ */
 export const WEBHOOK_DELIVERY_ID_HEADER = "x-etp-delivery-id";
 /** The event name, e.g. `monitoring.changes_detected`. */
 export const WEBHOOK_EVENT_HEADER = "x-etp-event";
@@ -50,8 +53,10 @@ export interface ConstructEventOptions {
  * Pass the body exactly as received. Re-serializing parsed JSON changes the
  * bytes and the signature will not match.
  *
- * Deliveries are at-least-once. Use the `X-ETP-Delivery-Id` header to ignore
- * repeats.
+ * Deliveries are at-least-once. Retries reuse `X-ETP-Delivery-Id` but are
+ * signed again, and the delivery id is not covered by the signature, so treat
+ * a delivery as a repeat if its `X-ETP-Delivery-Id` or its `X-ETP-Signature`
+ * has been seen.
  *
  * @throws VendorvalError with `type: "webhook_error"` and one of these codes:
  *   `missing_secret`, `missing_signature_header`, `missing_timestamp_header`,

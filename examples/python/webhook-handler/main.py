@@ -19,7 +19,12 @@ import os
 import sys
 from typing import Any
 
-from vendorval_sdk import WEBHOOK_DELIVERY_ID_HEADER, VendorvalError, construct_event
+from vendorval_sdk import (
+    WEBHOOK_DELIVERY_ID_HEADER,
+    WEBHOOK_SIGNATURE_HEADER,
+    VendorvalError,
+    construct_event,
+)
 
 
 def _load_secrets() -> dict[str, str]:
@@ -56,8 +61,10 @@ def main() -> None:
         sys.exit(1)
 
     secrets = _load_secrets()
-    # Deliveries are at-least-once and retries reuse the delivery id. Keep this
-    # in durable storage in production.
+    # Deliveries are at-least-once. Retries reuse the delivery id but are signed
+    # again, and the delivery id is not covered by the signature, so remember
+    # both and treat a match on either as a repeat. Keep this in durable storage
+    # in production.
     seen: set[str] = set()
     app = Flask(__name__)
 
@@ -75,8 +82,15 @@ def main() -> None:
             print("invalid webhook:", err.code)
             return "invalid", 400
 
-        delivery_id = request.headers.get(WEBHOOK_DELIVERY_ID_HEADER)
-        if delivery_id is not None and delivery_id in seen:
+        dedupe_keys = {
+            value
+            for value in (
+                request.headers.get(WEBHOOK_DELIVERY_ID_HEADER),
+                request.headers.get(WEBHOOK_SIGNATURE_HEADER),
+            )
+            if value is not None
+        }
+        if dedupe_keys & seen:
             return "duplicate", 200
 
         if event["event"] == "monitoring.changes_detected":
@@ -90,9 +104,8 @@ def main() -> None:
                 )
         else:
             print("received event", event["event"])
-        # Record the id only once handling succeeded, so a failed delivery is retried.
-        if delivery_id is not None:
-            seen.add(delivery_id)
+        # Record these only once handling succeeded, so a failed delivery is retried.
+        seen.update(dedupe_keys)
         return "ok", 200
 
     app.run(port=8787)

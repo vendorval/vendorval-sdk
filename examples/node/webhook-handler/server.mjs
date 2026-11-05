@@ -1,5 +1,9 @@
 import { createServer } from "node:http";
-import { WEBHOOK_DELIVERY_ID_HEADER, constructEvent } from "vendorval-sdk";
+import {
+  WEBHOOK_DELIVERY_ID_HEADER,
+  WEBHOOK_SIGNATURE_HEADER,
+  constructEvent,
+} from "vendorval-sdk";
 
 // Each monitor has its own signing secret, returned once by
 // `client.monitors.create()` (or `client.monitors.rotateSecret()`).
@@ -20,8 +24,10 @@ if (Object.keys(SECRETS).length === 0) {
 
 const MAX_BYTES = 1024 * 1024; // 1MB cap on webhook bodies; reject anything larger.
 
-// Deliveries are at-least-once and retries reuse the delivery id, so remember
-// the ids already handled. Keep this in durable storage in production.
+// Deliveries are at-least-once. Retries reuse the delivery id but are signed
+// again, and the delivery id is not covered by the signature, so remember both
+// and treat a match on either as a repeat. Keep this in durable storage in
+// production.
 const seen = new Set();
 
 /**
@@ -80,8 +86,11 @@ const server = createServer((req, res) => {
       return;
     }
 
-    const deliveryId = req.headers[WEBHOOK_DELIVERY_ID_HEADER];
-    if (typeof deliveryId === "string" && seen.has(deliveryId)) {
+    const dedupeKeys = [
+      req.headers[WEBHOOK_DELIVERY_ID_HEADER],
+      req.headers[WEBHOOK_SIGNATURE_HEADER],
+    ].filter((value) => typeof value === "string");
+    if (dedupeKeys.some((key) => seen.has(key))) {
       res.statusCode = 200;
       res.end("duplicate");
       return;
@@ -99,8 +108,8 @@ const server = createServer((req, res) => {
     } else {
       console.log("received event", event.event);
     }
-    // Record the id only once handling succeeded, so a failed delivery is retried.
-    if (typeof deliveryId === "string") seen.add(deliveryId);
+    // Record these only once handling succeeded, so a failed delivery is retried.
+    for (const key of dedupeKeys) seen.add(key);
     res.statusCode = 200;
     res.end("ok");
   });
