@@ -13,7 +13,7 @@ class DeliveryCache:
         if normalized in self.signatures:
             return True
         digest = sha256(body).hexdigest()
-        if digest in self.deliveries.get(delivery_id or "", set()):
+        if delivery_id is not None and digest in self.deliveries.get(delivery_id, set()):
             # A retry counts as handled only when its authenticated body also matches.
             self.signatures.add(normalized)
             return True

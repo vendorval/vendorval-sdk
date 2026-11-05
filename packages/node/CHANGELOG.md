@@ -15,7 +15,7 @@
 
 ### Documentation
 
-- **Webhook repeats:** treat a delivery as a repeat if its `X-ETP-Delivery-Id` or its lowercased `X-ETP-Signature` has been seen. The README and the example handler now do this.
+- **Webhook repeats:** after signature verification, skip a delivery whose lowercased `X-ETP-Signature` is already processed, or whose `X-ETP-Delivery-Id` and verified body digest both match a completed delivery. Cache a matching retry's new signature too. The README and example handler describe this best-effort policy and its need for a signed unique event ID to distinguish otherwise identical deliveries.
 
 ## 0.10.0
 

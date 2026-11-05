@@ -55,8 +55,10 @@ export interface ConstructEventOptions {
  *
  * Deliveries are at-least-once. Retries reuse `X-ETP-Delivery-Id` but are
  * signed again. Cache processed signatures in lowercase. Because the delivery id
- * is unsigned, a retry is processed only if its id and verified body digest
- * match a completed delivery; then cache its new signature too.
+ * is unsigned, treat a retry as already processed only if its id and verified
+ * body digest match a completed delivery; then cache its new signature too.
+ * Distinct deliveries with identical bodies signed in the same second have
+ * identical signatures; distinguishing them requires a unique ID in the signed payload.
  *
  * @throws VendorvalError with `type: "webhook_error"` and one of these codes:
  *   `missing_secret`, `missing_signature_header`, `missing_timestamp_header`,

@@ -121,6 +121,8 @@ signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER)
 
 Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id` but are signed again, and the delivery id is not covered by the signature. Keep processed signatures (compared in lowercase) and bind each processed delivery id to a SHA-256 digest of its verified raw body. A known signature is a repeat; a re-signed retry is a repeat only when both its id and body digest match a completed delivery. Record that retry signature too. An unsigned id with a different body must not suppress an event or mark its signature as processed. Keep this state in durable storage with an appropriate retention period; see the webhook-handler example. Each `monitoring.changes_detected` delivery carries one change in `event["data"]["changes"]`, and `event["data"]["monitor_id"]` tells you which monitor's secret to use.
 
+This cache is best-effort. Two distinct deliveries with identical raw bodies signed in the same second have identical signatures, even when their unsigned delivery IDs differ. Distinguishing those deliveries requires the sender to include a unique event ID in the signed payload; an unsigned header cannot provide that guarantee.
+
 ## License
 
 [MIT](./LICENSE)
