@@ -1,5 +1,10 @@
 import { createServer } from "node:http";
-import { WEBHOOK_DELIVERY_ID_HEADER, constructEvent } from "vendorval-sdk";
+import { DeliveryCache } from "./delivery-cache.mjs";
+import {
+  WEBHOOK_DELIVERY_ID_HEADER,
+  WEBHOOK_SIGNATURE_HEADER,
+  constructEvent,
+} from "vendorval-sdk";
 
 // Each monitor has its own signing secret, returned once by
 // `client.monitors.create()` (or `client.monitors.rotateSecret()`).
@@ -20,9 +25,13 @@ if (Object.keys(SECRETS).length === 0) {
 
 const MAX_BYTES = 1024 * 1024; // 1MB cap on webhook bodies; reject anything larger.
 
-// Deliveries are at-least-once and retries reuse the delivery id, so remember
-// the ids already handled. Keep this in durable storage in production.
-const seen = new Set();
+// Deliveries are at-least-once. Retries reuse the delivery id but are signed
+// again, and the delivery id is not covered by the signature, so remember both
+// and bind each delivery id to the authenticated body digest. A reused id with
+// a different body must not suppress a new event. Signatures are stored in lowercase
+// because constructEvent() accepts either case. Keep this in durable storage in
+// production.
+const cache = new DeliveryCache();
 
 /**
  * The monitor id is read from the body before the signature is checked, only
@@ -81,7 +90,8 @@ const server = createServer((req, res) => {
     }
 
     const deliveryId = req.headers[WEBHOOK_DELIVERY_ID_HEADER];
-    if (typeof deliveryId === "string" && seen.has(deliveryId)) {
+    const signature = String(req.headers[WEBHOOK_SIGNATURE_HEADER]).trim().toLowerCase();
+    if (cache.isDuplicate(signature, deliveryId, body)) {
       res.statusCode = 200;
       res.end("duplicate");
       return;
@@ -99,8 +109,8 @@ const server = createServer((req, res) => {
     } else {
       console.log("received event", event.event);
     }
-    // Record the id only once handling succeeded, so a failed delivery is retried.
-    if (typeof deliveryId === "string") seen.add(deliveryId);
+    // Record these only once handling succeeded, so a failed delivery is retried.
+    cache.record(signature, deliveryId, body);
     res.statusCode = 200;
     res.end("ok");
   });

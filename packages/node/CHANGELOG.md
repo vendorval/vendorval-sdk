@@ -1,5 +1,22 @@
 # vendorval-sdk (Node)
 
+## Unreleased
+
+### Changed
+
+- **Plain `http://` base URLs are refused for hosts other than localhost.** The API key is sent with every request, so the constructor now throws a `VendorvalError` with code `insecure_base_url`. `https://` URLs and `http://` on `localhost`, `*.localhost`, `127.0.0.0/8` and `[::1]` work as before. For a trusted private network, pass the new `allowInsecureBaseUrl: true` option.
+- **`apiKey` is no longer an enumerable property of `client.options`,** so logging or serializing a client doesn't print the key. `client.options.apiKey` still reads it, but `{ ...client.options }` and `Object.keys(client.options)` no longer include it.
+- **A key with control characters inside it throws at construction** with code `invalid_api_key_format`, even with `validateApiKey: false`. Such a key could not be sent, so requests with it already failed.
+
+### Fixed
+
+- **The API key no longer appears in `APIConnectionError` messages.**
+- **Whitespace around the API key is ignored** when it comes from the option or from `VENDORVAL_API_KEY`. A blank key now counts as missing.
+
+### Documentation
+
+- **Webhook repeats:** after signature verification, skip a delivery whose lowercased `X-ETP-Signature` is already processed, or whose `X-ETP-Delivery-Id` and verified body digest both match a completed delivery. Cache a matching retry's new signature too. The README and example handler describe this best-effort policy and its need for a signed unique event ID to distinguish otherwise identical deliveries.
+
 ## 0.10.0
 
 This release brings the SDK in line with the API's current request and response shapes. Several of the old shapes no longer matched what the API accepts or returns, so most of the changes below are breaking. Each one says what to change.

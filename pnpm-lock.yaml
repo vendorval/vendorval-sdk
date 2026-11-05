@@ -13,7 +13,11 @@ overrides:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      js-yaml:
+        specifier: 4.3.2
+        version: 4.3.2
 
   examples/node/live-smoke:
     dependencies:

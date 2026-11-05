@@ -55,7 +55,9 @@ client = Vendorval(
 )
 ```
 
-API keys are prefixed `vv_test_` (sandbox), `vv_live_` (production) or `vv_mcp_` (keys issued for MCP clients). The client checks the prefix and raises `VendorvalError` with `code="invalid_api_key_prefix"` on anything else, before any request is sent.
+API keys are prefixed `vv_test_` (sandbox), `vv_live_` (production) or `vv_mcp_` (keys issued for MCP clients). The client checks the prefix and raises `VendorvalError` with `code="invalid_api_key_prefix"` on anything else, before any request is sent. Whitespace around the key is ignored.
+
+The base URL must use `https://`, except for localhost. For a trusted private network, pass `allow_insecure_base_url=True`.
 
 ## Errors
 
@@ -103,16 +105,23 @@ save_secret(monitor["id"], monitor["webhook_secret"])
 Verify each delivery with `construct_event`, passing the raw request body, the request headers and that monitor's secret:
 
 ```python
-from vendorval_sdk import WEBHOOK_DELIVERY_ID_HEADER, construct_event
+from vendorval_sdk import (
+    WEBHOOK_DELIVERY_ID_HEADER,
+    WEBHOOK_SIGNATURE_HEADER,
+    construct_event,
+)
 
 # Flask
 event = construct_event(request.get_data(), request.headers, secret)
 delivery_id = request.headers.get(WEBHOOK_DELIVERY_ID_HEADER)
+signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER)
 ```
 
 `construct_event` checks the `X-ETP-Signature` header (`sha256=<hex>`, an HMAC-SHA256 of `<X-ETP-Timestamp>.<raw body>`) in constant time, and rejects deliveries whose `X-ETP-Timestamp` is more than 300 seconds from now (`tolerance=` changes that). It raises `VendorvalError` with `type="webhook_error"` on any failure. Use the raw body: re-serializing parsed JSON changes the bytes and the signature will not match.
 
-Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id`, so record it and ignore repeats. Each `monitoring.changes_detected` delivery carries one change in `event["data"]["changes"]`, and `event["data"]["monitor_id"]` tells you which monitor's secret to use.
+Deliveries are at-least-once. Retries of the same delivery reuse `X-ETP-Delivery-Id` but are signed again, and the delivery id is not covered by the signature. Keep processed signatures (compared in lowercase) and bind each processed delivery id to a SHA-256 digest of its verified raw body. A known signature is a repeat; a re-signed retry is a repeat only when both its id and body digest match a completed delivery. Record that retry signature too. An unsigned id with a different body must not suppress an event or mark its signature as processed. Keep this state in durable storage with an appropriate retention period; see the webhook-handler example. Each `monitoring.changes_detected` delivery carries one change in `event["data"]["changes"]`, and `event["data"]["monitor_id"]` tells you which monitor's secret to use.
+
+This cache is best-effort. Two distinct deliveries with identical raw bodies signed in the same second have identical signatures, even when their unsigned delivery IDs differ. Distinguishing those deliveries requires the sender to include a unique event ID in the signed payload; an unsigned header cannot provide that guarantee.
 
 ## License
 
