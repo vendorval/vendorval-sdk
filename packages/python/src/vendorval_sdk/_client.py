@@ -32,7 +32,9 @@ class Vendorval:
             client.entities.lookup(identifiers={"uei": "ABCD12345678"})
 
     The constructor reads `VENDORVAL_API_KEY` and `VENDORVAL_BASE_URL` from
-    the environment if not supplied.
+    the environment if not supplied. The base URL must use https:// unless it
+    points at localhost; `allow_insecure_base_url=True` lifts that for a
+    trusted private network.
     """
 
     VERSION = VERSION
@@ -46,6 +48,7 @@ class Vendorval:
         timeout: float | None = None,
         max_retries: int | None = None,
         validate_api_key: bool = True,
+        allow_insecure_base_url: bool = False,
         http_client: httpx.Client | None = None,
     ) -> None:
         self._cfg = resolve_config(
@@ -54,6 +57,7 @@ class Vendorval:
             timeout=timeout,
             max_retries=max_retries,
             validate_api_key=validate_api_key,
+            allow_insecure_base_url=allow_insecure_base_url,
         )
         self._owns_http = http_client is None
         self._http = http_client or httpx.Client(timeout=self._cfg.timeout)

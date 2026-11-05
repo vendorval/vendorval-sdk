@@ -1,5 +1,21 @@
 # vendorval-sdk (Python)
 
+## Unreleased
+
+### Changed
+
+- **Plain `http://` base URLs are refused for hosts other than localhost.** The API key is sent with every request, so the constructor now raises a `VendorvalError` with code `insecure_base_url`. `https://` URLs and `http://` on `localhost`, `*.localhost`, loopback IPs and `[::1]` work as before. For a trusted private network, pass the new `allow_insecure_base_url=True` argument.
+- **A key with control characters inside it raises at construction** with code `invalid_api_key_format`, even with `validate_api_key=False`.
+
+### Fixed
+
+- **The API key no longer appears in `APIConnectionError` messages,** or in the repr of the SDK's internal config and request objects.
+- **Whitespace around the API key is ignored** when it comes from the argument or from `VENDORVAL_API_KEY`, so a key read from a file with a trailing newline now works. A blank key now counts as missing.
+
+### Documentation
+
+- **Webhook repeats:** record both `X-ETP-Delivery-Id` and `X-ETP-Signature`, and treat a match on either as a repeat. The README and the example handler now do this.
+
 ## 0.10.0
 
 This release brings the SDK in line with the API's current request and response shapes. Several of the old shapes no longer matched what the API accepts or returns, so most of the changes below are breaking. Each one says what to change.

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import platform
 import re
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -28,6 +29,7 @@ DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_RETRIES = 2
 
 _KEY_PREFIX = re.compile(r"^vv_(test|live|mcp)_")
+_KEY_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _USER_AGENT = (
     f"vendorval-python/{VERSION} "
     f"(python/{platform.python_version()}; {platform.python_implementation().lower()})"
@@ -36,7 +38,7 @@ _USER_AGENT = (
 
 @dataclass
 class ResolvedConfig:
-    api_key: str
+    api_key: str = field(repr=False)
     base_url: str
     timeout: float
     max_retries: int
@@ -45,12 +47,38 @@ class ResolvedConfig:
 @dataclass
 class Prepared:
     method: str
-    url: str
-    headers: dict[str, str]
-    json_body: Any
+    # These hold the API key and request data, so keep them out of any repr
+    # that ends up in a log or a captured stack frame.
+    url: str = field(repr=False)
+    headers: dict[str, str] = field(repr=False)
+    json_body: Any = field(repr=False)
     timeout: float
     auto_idempotency: bool
     max_retries: int
+
+
+def _is_loopback_host(host: str) -> bool:
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _check_base_url(url: str) -> None:
+    try:
+        parsed = httpx.URL(url)
+    except httpx.InvalidURL:
+        return  # Reported by the first request, as before.
+    if parsed.scheme == "http" and not _is_loopback_host(parsed.host):
+        raise VendorvalError(
+            "base_url must use https:// unless it points at localhost, because the API key "
+            "is sent with every request. For a trusted private network, pass "
+            "allow_insecure_base_url=True.",
+            type="configuration_error",
+            code="insecure_base_url",
+        )
 
 
 def resolve_config(
@@ -60,15 +88,26 @@ def resolve_config(
     timeout: float | None,
     max_retries: int | None,
     validate_api_key: bool,
+    allow_insecure_base_url: bool = False,
 ) -> ResolvedConfig:
     # An explicit api_key wins, even "", so a blank config value is never
     # silently replaced by the environment key (same as the Node SDK).
     key = api_key if api_key is not None else (os.environ.get("VENDORVAL_API_KEY") or "")
+    # Keys read from a file or a mounted secret often end in a newline.
+    key = key.strip()
     if not key:
         raise VendorvalError(
             "Missing API key. Pass api_key= or set VENDORVAL_API_KEY in the environment.",
             type="configuration_error",
             code="missing_api_key",
+        )
+    # Checked even with validate_api_key=False: no key contains these, and the
+    # HTTP layer's error for such a header value would quote it.
+    if _KEY_CONTROL_CHARS.search(key):
+        raise VendorvalError(
+            "API key contains control characters. Check how it is loaded.",
+            type="configuration_error",
+            code="invalid_api_key_format",
         )
     if validate_api_key and not _KEY_PREFIX.match(key):
         raise VendorvalError(
@@ -79,6 +118,8 @@ def resolve_config(
 
     url = base_url or os.environ.get("VENDORVAL_BASE_URL") or DEFAULT_BASE_URL
     url = url.rstrip("/")
+    if not allow_insecure_base_url:
+        _check_base_url(url)
 
     resolved_timeout = DEFAULT_TIMEOUT if timeout is None else timeout
     resolved_max_retries = DEFAULT_MAX_RETRIES if max_retries is None else max_retries
@@ -185,6 +226,14 @@ def _request_id(response: httpx.Response) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _connection_error(err: httpx.HTTPError, prepared: Prepared) -> APIConnectionError:
+    message = str(err)
+    token = prepared.headers.get("Authorization", "").removeprefix("Bearer ")
+    if token:
+        message = message.replace(token, "[redacted]")
+    return APIConnectionError(message)
+
+
 def execute_sync(
     client: httpx.Client,
     prepared: Prepared,
@@ -214,7 +263,7 @@ def execute_sync(
             time.sleep(min(0.5 * (2 ** attempt), 30.0))
             continue
         except httpx.HTTPError as err:
-            last_error = APIConnectionError(str(err))
+            last_error = _connection_error(err, prepared)
             if attempt >= prepared.max_retries:
                 raise last_error from None
             time.sleep(min(0.5 * (2 ** attempt), 30.0))
@@ -279,7 +328,7 @@ async def execute_async(
             await asyncio.sleep(min(0.5 * (2 ** attempt), 30.0))
             continue
         except httpx.HTTPError as err:
-            last_error = APIConnectionError(str(err))
+            last_error = _connection_error(err, prepared)
             if attempt >= prepared.max_retries:
                 raise last_error from None
             await asyncio.sleep(min(0.5 * (2 ** attempt), 30.0))

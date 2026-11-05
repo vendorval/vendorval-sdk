@@ -14,6 +14,12 @@ export interface ClientOptions {
   fetch?: FetchLike;
   /** Set false to disable client-side prefix validation (advanced). */
   validateApiKey?: boolean;
+  /**
+   * Set true to allow an `http://` base URL on a host other than localhost.
+   * The API key is sent with every request, so only do this on a trusted
+   * private network.
+   */
+  allowInsecureBaseUrl?: boolean;
 }
 
 export interface ResolvedClientOptions {
@@ -50,9 +56,12 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_MAX_RETRIES = 2;
 const USER_AGENT = `vendorval-node/${VERSION} (node/${process.version.slice(1)})`;
 const KEY_PREFIX = /^vv_(test|live|mcp)_/;
+// eslint-disable-next-line no-control-regex
+const KEY_CONTROL_CHARS = /[\x00-\x1f\x7f]/;
 
 export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
-  const apiKey = opts.apiKey ?? process.env.VENDORVAL_API_KEY ?? "";
+  // Keys read from a file or a mounted secret often end in a newline.
+  const apiKey = (opts.apiKey ?? process.env.VENDORVAL_API_KEY ?? "").trim();
   if (!apiKey) {
     throw new VendorvalError({
       message:
@@ -60,6 +69,17 @@ export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
       status: 0,
       type: "configuration_error",
       code: "missing_api_key",
+      requestId: null,
+    });
+  }
+  // Checked even with `validateApiKey: false`: no key contains these, and the
+  // runtime's error for such a header value would quote it.
+  if (KEY_CONTROL_CHARS.test(apiKey)) {
+    throw new VendorvalError({
+      message: "API key contains control characters. Check how it is loaded.",
+      status: 0,
+      type: "configuration_error",
+      code: "invalid_api_key_format",
       requestId: null,
     });
   }
@@ -78,6 +98,7 @@ export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
   const baseUrl = stripTrailingSlash(
     opts.baseUrl ?? process.env.VENDORVAL_BASE_URL ?? DEFAULT_BASE_URL,
   );
+  if (opts.allowInsecureBaseUrl !== true) assertSecureBaseUrl(baseUrl);
 
   const fetchImpl = opts.fetch ?? (globalThis.fetch as FetchLike | undefined);
   if (!fetchImpl) {
@@ -113,13 +134,45 @@ export function resolveOptions(opts: ClientOptions): ResolvedClientOptions {
     });
   }
 
-  return {
-    apiKey,
-    baseUrl,
-    timeout,
-    maxRetries,
-    fetch: fetchImpl,
-  };
+  const resolved = { baseUrl, timeout, maxRetries, fetch: fetchImpl } as ResolvedClientOptions;
+  // Not enumerable, so logging or serializing a client doesn't print the key.
+  // `client.options.apiKey` still reads it.
+  Object.defineProperty(resolved, "apiKey", {
+    value: apiKey,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
+  return resolved;
+}
+
+function assertSecureBaseUrl(baseUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return; // Reported by the first request, as before.
+  }
+  if (url.protocol === "http:" && !isLoopbackHost(url.hostname)) {
+    throw new VendorvalError({
+      message:
+        "baseUrl must use https:// unless it points at localhost, because the API key is sent " +
+        "with every request. For a trusted private network, pass `allowInsecureBaseUrl: true`.",
+      status: 0,
+      type: "configuration_error",
+      code: "insecure_base_url",
+      requestId: null,
+    });
+  }
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "[::1]" ||
+    /^127\.\d+\.\d+\.\d+$/.test(hostname)
+  );
 }
 
 export async function performRequest<T>(
@@ -170,7 +223,7 @@ export async function performRequest<T>(
         lastError = new APITimeoutError(timeout);
       } else {
         lastError = new APIConnectionError(
-          err instanceof Error ? err.message : "Network error",
+          err instanceof Error ? redactKey(err.message, client.apiKey) : "Network error",
         );
       }
       if (attempt >= maxRetries) throw lastError;
@@ -212,6 +265,10 @@ export async function performRequest<T>(
 
   // Unreachable: loop either returns or throws.
   throw lastError ?? new APIConnectionError("Request failed after retries");
+}
+
+function redactKey(message: string, apiKey: string): string {
+  return apiKey ? message.split(apiKey).join("[redacted]") : message;
 }
 
 function buildHeaders(apiKey: string, options: RequestOptions): HeadersInit {
