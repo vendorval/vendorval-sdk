@@ -45,6 +45,21 @@
         }
       }
     },
+    "/v1/health/auth": {
+      "get": {
+        "summary": "JWT signing-key health",
+        "tags": [
+          "Health"
+        ],
+        "description": "Unauthenticated. Reports whether the identity provider's published signing keys are usable by this API. degraded=true means dashboard sign-in is failing or about to.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/v1/health/detail": {
       "get": {
         "summary": "Deep dependency health (VendorVal staff only)",
