@@ -9,13 +9,15 @@
  *
  * Usage: node scripts/check-workflows.mjs
  */
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { load } from "js-yaml";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
 function yamlFiles(dir) {
+  if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return yamlFiles(path);
@@ -23,32 +25,58 @@ function yamlFiles(dir) {
   });
 }
 
-const indentOf = (line) => line.length - line.trimStart().length;
+const mapping = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
 function check(path) {
   const problems = [];
-  const lines = readFileSync(path, "utf8").split("\n");
-  let runIndent = null; // Column of the `run` key while inside its script.
+  const file = relative(root, path);
+  let document;
+  try {
+    document = load(readFileSync(path, "utf8"), { filename: file });
+  } catch (error) {
+    return [`${file}: YAML could not be read: ${error.message}`];
+  }
+  if (!mapping(document)) return [`${file}: expected a YAML mapping`];
 
-  lines.forEach((line, index) => {
-    const where = `${relative(root, path)}:${index + 1}`;
-    if (runIndent !== null && line.trim() !== "" && indentOf(line) <= runIndent) runIndent = null;
-
-    const run = runIndent === null ? /^(\s*(?:-\s+)?)(?:run|"run"|'run')\s*:/.exec(line) : null;
-    if (run) runIndent = run[1].length;
-    if (runIndent !== null && line.includes("${{")) {
-      problems.push(`${where}: expression inside a run script; pass it through env`);
+  const checkUses = (value, where) => {
+    if (typeof value !== "string") problems.push(`${where}: uses must name an action or reusable workflow`);
+    else if (!value.startsWith("./") && !/@[0-9a-f]{40}$/.test(value)) {
+      problems.push(`${where}: ${value} is not pinned to a full commit SHA`);
     }
-
-    const uses = runIndent === null ? /^\s*(?:-\s+)?(?:uses|"uses"|'uses')\s*:\s*["']?([^"'\s#]+)/.exec(line) : null;
-    if (uses && !uses[1].startsWith("./") && !/@[0-9a-f]{40}$/.test(uses[1])) {
-      problems.push(`${where}: ${uses[1]} is not pinned to a full commit SHA`);
+  };
+  const checkSteps = (steps, where) => {
+    if (!Array.isArray(steps)) { problems.push(`${where}: expected a step sequence`); return; }
+    for (const [index, step] of steps.entries()) {
+      const at = `${where}[${index}]`;
+      if (!mapping(step)) { problems.push(`${at}: expected a step mapping`); continue; }
+      if (Object.hasOwn(step, "uses")) checkUses(step.uses, `${at}.uses`);
+      if (Object.hasOwn(step, "run")) {
+        if (typeof step.run !== "string") problems.push(`${at}.run: expected a script string`);
+        else if (step.run.includes("${{")) problems.push(`${at}.run: expression inside a run script; pass it through env`);
+      }
     }
-  });
+  };
+
+  if (Object.hasOwn(document, "jobs")) {
+    if (!mapping(document.jobs)) problems.push(`${file}:jobs: expected a job mapping`);
+    else for (const [id, job] of Object.entries(document.jobs)) {
+      const at = `${file}:jobs.${id}`;
+      if (!mapping(job)) { problems.push(`${at}: expected a job mapping`); continue; }
+      if (Object.hasOwn(job, "uses")) checkUses(job.uses, `${at}.uses`);
+      if (Object.hasOwn(job, "steps")) checkSteps(job.steps, `${at}.steps`);
+    }
+  }
+  if (mapping(document.runs) && document.runs.using === "composite") {
+    checkSteps(document.runs.steps, `${file}:runs.steps`);
+  }
   return problems;
 }
 
-const problems = yamlFiles(join(root, ".github")).flatMap(check);
+const files = [
+  ...yamlFiles(join(root, ".github", "workflows")),
+  ...yamlFiles(join(root, ".github", "actions")).filter((path) => /^action\.ya?ml$/.test(basename(path))),
+];
+const problems = files.flatMap(check);
 if (problems.length > 0) {
   console.error(problems.join("\n"));
   process.exit(1);
