@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { DeliveryCache } from "./delivery-cache.mjs";
 import {
   WEBHOOK_DELIVERY_ID_HEADER,
   WEBHOOK_SIGNATURE_HEADER,
@@ -29,7 +30,7 @@ const MAX_BYTES = 1024 * 1024; // 1MB cap on webhook bodies; reject anything lar
 // and treat a match on either as a repeat. Signatures are stored in lowercase
 // because constructEvent() accepts either case. Keep this in durable storage in
 // production.
-const seen = new Set();
+const cache = new DeliveryCache();
 
 /**
  * The monitor id is read from the body before the signature is checked, only
@@ -89,9 +90,7 @@ const server = createServer((req, res) => {
 
     const deliveryId = req.headers[WEBHOOK_DELIVERY_ID_HEADER];
     const signature = String(req.headers[WEBHOOK_SIGNATURE_HEADER]).trim().toLowerCase();
-    if (seen.has(signature) || (typeof deliveryId === "string" && seen.has(deliveryId))) {
-      // A retry is signed again, so its signature may be new.
-      seen.add(signature);
+    if (cache.isDuplicate(signature, deliveryId, body)) {
       res.statusCode = 200;
       res.end("duplicate");
       return;
@@ -110,8 +109,7 @@ const server = createServer((req, res) => {
       console.log("received event", event.event);
     }
     // Record these only once handling succeeded, so a failed delivery is retried.
-    seen.add(signature);
-    if (typeof deliveryId === "string") seen.add(deliveryId);
+    cache.record(signature, deliveryId, body);
     res.statusCode = 200;
     res.end("ok");
   });
