@@ -26,6 +26,22 @@ afterEach(() => {
 });
 
 describe("workflow checker against real fixture files", () => {
+  it.each(['"run"', "'run'"])("checks scripts under a quoted YAML key %s", (key) => {
+    const result = checkWorkflow([
+      "jobs:", "  check:", "    steps:", `      - ${key}: |`,
+      `          echo "${expression}"`,
+    ]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("expression inside a run script");
+  });
+
+  it.each(['"uses"', "'uses'"])("checks action pins under a quoted YAML key %s", (key) => {
+    const result = checkWorkflow([
+      "jobs:", "  check:", "    steps:", `      - ${key}: actions/checkout@v4`,
+    ]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("not pinned to a full commit SHA");
+  });
   it("rejects an interpolated expression after a heredoc line that resembles a run key", () => {
     const result = checkWorkflow([
       "jobs:", "  check:", "    steps:", "      - run: |",
