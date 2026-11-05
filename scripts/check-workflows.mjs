@@ -34,13 +34,13 @@ function check(path) {
     const where = `${relative(root, path)}:${index + 1}`;
     if (runIndent !== null && line.trim() !== "" && indentOf(line) <= runIndent) runIndent = null;
 
-    const run = runIndent === null ? /^(\s*(?:-\s+)?)run\s*:/.exec(line) : null;
+    const run = runIndent === null ? /^(\s*(?:-\s+)?)(?:run|"run"|'run')\s*:/.exec(line) : null;
     if (run) runIndent = run[1].length;
     if (runIndent !== null && line.includes("${{")) {
       problems.push(`${where}: expression inside a run script; pass it through env`);
     }
 
-    const uses = runIndent === null ? /^\s*(?:-\s+)?uses\s*:\s*["']?([^"'\s#]+)/.exec(line) : null;
+    const uses = runIndent === null ? /^\s*(?:-\s+)?(?:uses|"uses"|'uses')\s*:\s*["']?([^"'\s#]+)/.exec(line) : null;
     if (uses && !uses[1].startsWith("./") && !/@[0-9a-f]{40}$/.test(uses[1])) {
       problems.push(`${where}: ${uses[1]} is not pinned to a full commit SHA`);
     }
