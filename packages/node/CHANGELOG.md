@@ -1,8 +1,8 @@
 # vendorval-sdk (Node)
 
-## Unreleased
+## 0.11.0
 
-### Changed
+### Changed (breaking)
 
 - **Plain `http://` base URLs are refused for hosts other than localhost.** The API key is sent with every request, so the constructor now throws a `VendorvalError` with code `insecure_base_url`. `https://` URLs and `http://` on `localhost`, `*.localhost`, `127.0.0.0/8` and `[::1]` work as before. For a trusted private network, pass the new `allowInsecureBaseUrl: true` option.
 - **`apiKey` is no longer an enumerable property of `client.options`,** so logging or serializing a client doesn't print the key. `client.options.apiKey` still reads it, but `{ ...client.options }` and `Object.keys(client.options)` no longer include it.
