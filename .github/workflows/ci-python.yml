@@ -35,6 +35,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked --all-extras --dev
+      - name: Validate Python example lock metadata
+        run: uv lock --check --project ../../examples/python/live-smoke
       - run: uv run ruff check src tests
       - run: uv run mypy src
       - run: uv run pytest -q
