@@ -358,7 +358,7 @@
         "tags": [
           "Entities"
         ],
-        "description": "Read-only. Accepts a flat identifier object. Exact mode returns the strongest single match; fuzzy mode returns ranked candidates with confidence scores. Never creates entities. Set options.sam_refresh to control live SAM.gov fetching (auto | force | never). Country is resolved automatically from the strongest identifier (vat_id prefix, US-only ids imply US, …) or from the org default. `country` may be supplied explicitly to bypass inference, but it must agree with any country implied by an identifier — a conflict returns `country_mismatch` (422), it is not a silent override. The response carries a top-level `livemode` boolean; with a sandbox test key (`livemode: false`; a `vv_test_` key created after the sandbox launched, older test keys behave as live keys) the lookup reads existing data only: no live SAM.gov refresh and no hot pull.",
+        "description": "Read-only. Accepts a flat identifier object. Exact mode returns the strongest single match; fuzzy mode returns ranked candidates with confidence scores. Never creates entities. Set options.sam_refresh to control live SAM.gov fetching (auto | force | never). Country is resolved automatically from the strongest identifier (vat_id prefix, US-only ids imply US, …) or from the org default. `country` may be supplied explicitly to bypass inference, but it must agree with any country implied by an identifier — a conflict returns `country_mismatch` (422), it is not a silent override. The response carries a top-level `livemode` boolean; with a sandbox test key (`livemode: false`; a `vv_test_` key created after the sandbox launched, older test keys behave as live keys) the lookup reads existing data only: no live SAM.gov refresh and no hot pull, and it needs an org with an active subscription (`403 not_available_in_sandbox` otherwise).",
         "requestBody": {
           "required": true,
           "content": {
@@ -1389,7 +1389,7 @@
         "tags": [
           "Verifications"
         ],
-        "description": "Convenience endpoint: looks up an entity by the supplied identifiers, runs the requested checks, and — when no entity matched — auto-creates the canonical entity if an identity-confirming authoritative check (tin_match / sam_registration / uei_validation / lei_validation) returns a definitive `pass`. If no such pass occurs the response carries the check results with `entity: null` and `entity_created: false` (nothing is written). `options.create_if_not_found` is no longer required; set it to force-create a customer-asserted entity without an authoritative pass (legacy/back-compat). **Synchronous by default** — the response carries fully-resolved per-check statuses. Pass `options: { sync: false }` to queue the verification asynchronously and poll `GET /v1/verifications/:id`. Accepts `identifiers` either as an object keyed by type (recommended, e.g. `{ \"uei\": \"...\" }`) or as a legacy array of `{ type, value }` pairs. Every response carries a top-level `livemode` boolean: requests made with a sandbox test key (a `vv_test_` key created after the sandbox launched; older test keys behave as live keys) run in the sandbox (`livemode: false`), where every check is answered by a deterministic simulated provider, no live source is called, and no entity is created or updated.",
+        "description": "Convenience endpoint: looks up an entity by the supplied identifiers, runs the requested checks, and — when no entity matched — auto-creates the canonical entity if an identity-confirming authoritative check (tin_match / sam_registration / lei_validation) returns a definitive `pass`. If no such pass occurs the response carries the check results with `entity: null` and `entity_created: false` (no canonical entity is created). A created entity keeps only the identifiers a passing check confirmed, and `uei_validation` alone can run for an unmatched request and return 200, but creates nothing because it confirms no name. Identifiers sent with a request are used for its checks and are not added to an existing entity. `options.create_if_not_found` is no longer required and is honored only for operator keys; for every other caller it behaves like the default, except that an unmatched request with no identity-confirming check returns its check results rather than a 404. **Synchronous by default** — the response carries fully-resolved per-check statuses. Pass `options: { sync: false }` to queue the verification asynchronously and poll `GET /v1/verifications/:id`. Accepts `identifiers` either as an object keyed by type (recommended, e.g. `{ \"uei\": \"...\" }`) or as a legacy array of `{ type, value }` pairs. Every response carries a top-level `livemode` boolean: requests made with a sandbox test key (a `vv_test_` key created after the sandbox launched; older test keys behave as live keys) run in the sandbox (`livemode: false`), where every check is answered by a deterministic simulated provider, no live source is called, and no entity is created or updated.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2448,14 +2448,15 @@
                     ]
                   },
                   "expiresAt": {
-                    "nullable": true,
                     "anyOf": [
                       {
+                        "nullable": true,
                         "type": "string",
                         "format": "date-time",
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                       },
                       {
+                        "nullable": true,
                         "type": "string",
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                       }
@@ -2782,10 +2783,11 @@
         }
       },
       "post": {
-        "summary": "Assign a plan to an organization (internal/admin)",
+        "summary": "Assign a plan to an organization (superadmin only)",
         "tags": [
           "Organizations"
         ],
+        "description": "Platform operators only. Customers change plans through Stripe checkout or the billing portal; operators normally use POST /v1/admin/orgs/{orgId}/subscription.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2877,7 +2879,7 @@
         "tags": [
           "Organizations"
         ],
-        "description": "Issues a new signing secret for `verification.completed` webhooks (from /v1/verify, /v1/verifications and bulk jobs) and returns it once as `webhook_secret`. The previous secret stops signing deliveries immediately. Creates the secret if the organization has none yet. Monitor webhooks use their own per-monitor secret.",
+        "description": "Issues a new signing secret for `verification.completed` webhooks (from /v1/verify, /v1/verifications and bulk jobs) and returns it once as `webhook_secret`. The previous secret stops signing deliveries immediately. Creates the secret if the organization has none yet. Monitor webhooks use their own per-monitor secret. Not available with a test key.",
         "parameters": [
           {
             "schema": {
