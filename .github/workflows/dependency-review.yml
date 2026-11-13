@@ -8,6 +8,7 @@ name: Dependency Review
 # Safe to filter because this is not a required status check.
 on:
   pull_request:
+    branches: [main]
     paths:
       - '**/package.json'
       - '**/package-lock.json'

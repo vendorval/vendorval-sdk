@@ -11,6 +11,7 @@ on:
       - "pnpm-workspace.yaml"
       - "pnpm-lock.yaml"
   pull_request:
+    branches: [main]
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
 concurrency:
