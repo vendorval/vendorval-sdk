@@ -31,9 +31,9 @@ if [[ -f "$ROOT/AGENTS.md" ]] && [[ -f "$ROOT/.github/copilot-instructions.md" ]
 fi
 
 for override in CLAUDE.local.md AGENTS.override.md .claude/CLAUDE.local.md; do
-  if git check-ignore -q "$override" 2>/dev/null; then
+  if git -C "$ROOT" check-ignore -q "$override" 2>/dev/null; then
     :
-  elif [[ -f "$ROOT/$override" ]] && git ls-files --error-unmatch "$override" >/dev/null 2>&1; then
+  elif [[ -f "$ROOT/$override" ]] && git -C "$ROOT" ls-files --error-unmatch "$override" >/dev/null 2>&1; then
     fail "tracked local override file: $override (should be gitignored, not merged into shared rules)"
   fi
 done
