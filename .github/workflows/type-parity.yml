@@ -36,3 +36,8 @@ jobs:
 
       - name: Check workflow pins and run scripts
         run: node scripts/check-workflows.mjs
+
+      # Lives here because this job runs on every pull request to main,
+      # with no path filter.
+      - name: Check AGENTS.md layout
+        run: bash scripts/check-agents-layout.sh
