@@ -2,9 +2,9 @@ name: Audit
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, staging]
   push:
-    branches: [main]
+    branches: [main, staging]
   schedule:
     # Daily — catch newly-disclosed CVEs in deps even with no open PR.
     - cron: '0 9 * * *'

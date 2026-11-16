@@ -2,9 +2,9 @@ name: SDK type parity (Node ↔ Python)
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, staging]
   push:
-    branches: [main]
+    branches: [main, staging]
   workflow_dispatch:
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
