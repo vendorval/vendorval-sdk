@@ -2,7 +2,7 @@ name: CI (Node)
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "packages/node/**"
       - "specs/**"
@@ -11,7 +11,7 @@ on:
       - "pnpm-workspace.yaml"
       - "pnpm-lock.yaml"
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 # Cancel superseded in-progress runs on the same PR; never cancel main.
 concurrency:
