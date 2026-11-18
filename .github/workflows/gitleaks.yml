@@ -8,9 +8,9 @@ name: Secret Scan (gitleaks)
 # pull_request event, and scanning its pushes too ran every scan twice.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 permissions:
   contents: read
