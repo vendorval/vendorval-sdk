@@ -47,7 +47,7 @@ jobs:
             Automated sync of `specs/openapi.json` from https://api.vendorval.com/v1/openapi.json.
 
             Review the diff to see if the SDK surface needs updating.
-          labels: spec-sync,automated
+          labels: spec-sync,automated,ci,priority:low
 
       # CI on a PR opened by github-actions[bot] doesn't start on its own:
       # GitHub creates the pull_request runs but holds them at "approval
