@@ -17,7 +17,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     permissions:
       contents: read
     defaults:
@@ -43,7 +43,7 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     environment: ${{ inputs.target == 'testpypi' && 'testpypi' || 'pypi' }}
     permissions:
       id-token: write # PyPI Trusted Publishing — no API token required

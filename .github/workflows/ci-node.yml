@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     strategy:
       matrix:
         node-version: ["20", "22", "24"]

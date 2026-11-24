@@ -20,7 +20,7 @@ permissions:
 jobs:
   node-audit:
     name: pnpm audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,7 +35,7 @@ jobs:
 
   python-audit:
     name: pip-audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     defaults:
       run:
         working-directory: packages/python
@@ -68,7 +68,7 @@ jobs:
     if: >-
       always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     timeout-minutes: 5
     permissions:
       contents: read # check out the local composite action
