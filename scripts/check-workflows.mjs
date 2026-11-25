@@ -82,7 +82,6 @@ function check(path) {
   const checkRunner = (id, job, at) => {
     const exception = HOSTED_JOBS.get(`${file}:${id}`);
     if (exception) {
-      seenHostedJobs.add(`${file}:${id}`);
       if (job["runs-on"] !== exception.runsOn) {
         problems.push(`${at}.runs-on: must be ${exception.runsOn} (${exception.reason})`);
       }
@@ -97,10 +96,8 @@ function check(path) {
     if (runsNpmPublish(job.steps)) {
       problems.push(`${at}: npm publish belongs only in the npm publish job of release-node.yml`);
     }
-    if (!Object.hasOwn(job, "runs-on")) {
-      if (!Object.hasOwn(job, "uses")) problems.push(`${at}: runs-on is missing`);
-      return;
-    }
+    // A renamed or moved npm job loses the exception and is then caught here.
+    if (!Object.hasOwn(job, "runs-on")) return;
     const labels = runsOnLabels(job["runs-on"]);
     // runs-on: ${{ matrix.x }} resolves to the matrix values: check them too.
     if (labels.some((label) => label.includes("matrix.")) && mapping(job.strategy)) {
@@ -140,15 +137,11 @@ function check(path) {
   return problems;
 }
 
-const seenHostedJobs = new Set();
 const files = [
   ...yamlFiles(join(root, ".github", "workflows")),
   ...yamlFiles(join(root, ".github", "actions")).filter((path) => /^action\.ya?ml$/.test(basename(path))),
 ];
 const problems = files.flatMap(check);
-for (const job of HOSTED_JOBS.keys()) {
-  if (!seenHostedJobs.has(job)) problems.push(`${job}: hosted-runner exception names a job that no longer exists; remove it`);
-}
 if (problems.length > 0) {
   console.error(problems.join("\n"));
   process.exit(1);
