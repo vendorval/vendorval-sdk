@@ -15,7 +15,7 @@ concurrency:
 jobs:
   check-labels:
     if: github.actor != 'dependabot[bot]'
-    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
+    runs-on: ${{ vars.LIGHT_RUNNER || 'beast-light' }}
     steps:
       - name: Verify type + priority labels
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.0.1
