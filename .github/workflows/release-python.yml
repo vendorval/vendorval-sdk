@@ -17,7 +17,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     permissions:
       contents: read
     defaults:
@@ -43,11 +43,14 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     environment: ${{ inputs.target == 'testpypi' && 'testpypi' || 'pypi' }}
     permissions:
       id-token: write # PyPI Trusted Publishing — no API token required
     steps:
+      # Upload only this run's build: start from an empty dist/.
+      - name: Remove stale distributions
+        run: rm -rf dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: python-dist

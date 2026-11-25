@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     timeout-minutes: 10
     permissions:
       contents: write
@@ -66,8 +66,14 @@ jobs:
           # Runs are created asynchronously after the PR event; give them two minutes.
           for _ in $(seq 1 12); do
             sleep 10
-            for id in $(gh run list --repo "$GITHUB_REPOSITORY" --commit "$SHA" --event pull_request \
-                          --json databaseId,conclusion --jq '.[] | select(.conclusion == "action_required") | .databaseId'); do
+            # A failed listing counts as a failed approval, so the fallback
+            # below still asks a maintainer instead of passing silently.
+            if ! ids=$(gh run list --repo "$GITHUB_REPOSITORY" --commit "$SHA" --event pull_request \
+                          --json databaseId,conclusion --jq '.[] | select(.conclusion == "action_required") | .databaseId'); then
+              failed=$((failed + 1))
+              break
+            fi
+            for id in $ids; do
               if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null; then
                 approved=$((approved + 1))
               else
@@ -91,7 +97,7 @@ jobs:
     if: >-
       always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     timeout-minutes: 5
     permissions:
       contents: read # check out the local composite action

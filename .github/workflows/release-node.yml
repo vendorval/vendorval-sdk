@@ -11,8 +11,19 @@ on:
         required: false
         default: "latest"
 
+permissions: {}
+
 jobs:
   publish:
+    # The one job in this repository on a GitHub-hosted runner (decided by
+    # Dominik Ottenbreit on 2026-11-25; every other job runs on our own
+    # runners). npm Trusted Publishing, the OIDC exchange this job relies on
+    # instead of an NPM_TOKEN, supports only cloud-hosted runners; self-hosted
+    # runners are not supported yet:
+    # https://docs.npmjs.com/trusted-publishers/#supported-cicd-providers
+    # scripts/check-workflows.mjs enforces this exception and forbids hosted
+    # runners everywhere else. Do not move this job to a self-hosted runner
+    # until npm supports them.
     runs-on: ubuntu-latest
     environment: npm
     permissions:

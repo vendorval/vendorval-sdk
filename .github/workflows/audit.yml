@@ -20,7 +20,7 @@ permissions:
 jobs:
   node-audit:
     name: pnpm audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,7 +35,7 @@ jobs:
 
   python-audit:
     name: pip-audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     defaults:
       run:
         working-directory: packages/python
@@ -52,11 +52,23 @@ jobs:
         with:
           python-version: "3.12"
 
+      # pip-audit keeps its cache in platformdirs' user cache dir, which must
+      # sit in a private, owner-only directory chain. On our runners $HOME
+      # (/home/runner) is writable by other users, so platformdirs rightly
+      # refuses ~/.cache with "PermissionError: /home/runner, writable by
+      # another user". Point XDG_CACHE_HOME at a fresh owner-only directory
+      # under the sticky /tmp instead (mktemp: unique name, mode 700); the
+      # permission check stays on.
+      - name: Prepare a private cache directory
+        run: |
+          cache_dir=$(mktemp -d /tmp/xdg-cache.XXXXXXXX)
+          echo "XDG_CACHE_HOME=$cache_dir" >> "$GITHUB_ENV"
+
       # Audits the resolved dependency environment via pip-audit (OSV advisories).
       - name: Audit (pip-audit)
         run: |
           uv sync
-          uv run --with pip-audit pip-audit
+          uv run --with pip-audit pip-audit --progress-spinner off
 
   notify:
     name: Notify on state change
@@ -68,7 +80,7 @@ jobs:
     if: >-
       always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LINUX_RUNNER || 'beast' }}
     timeout-minutes: 5
     permissions:
       contents: read # check out the local composite action
